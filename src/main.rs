@@ -1,8 +1,9 @@
 use winit::{
-    event::{Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::ControlFlow,
 };
 
+use crossbeam_channel::unbounded;
 use pathfinder_canvas::{CanvasRenderingContext2D, FillStyle, TextAlign};
 use pathfinder_content::color::ColorU;
 use pathfinder_geometry::vector::{Vector2F, Vector2I};
@@ -19,10 +20,36 @@ struct State {
     text: String,
 }
 
+enum Msg {
+    CharPressed(char),
+    KeyPressed(VirtualKeyCode),
+}
+
+fn update_state(state: &mut State, msg: Msg) -> bool {
+    match msg {
+        Msg::CharPressed(c) => {
+            state.text.push(c);
+            true
+        }
+        Msg::KeyPressed(key) => match key {
+            VirtualKeyCode::Back => {
+                state.text.pop();
+                true
+            }
+            VirtualKeyCode::Return => {
+                state.text.clear();
+                true
+            }
+            _ => false,
+        },
+    }
+}
+
 fn main_loop(ctx: RenderCtx) {
     let mut state = State::default();
 
-    let mut should_render = false;
+    let (msg_sender, msg_receiver) = unbounded();
+
     let RenderCtx {
         event_loop,
         window,
@@ -34,11 +61,13 @@ fn main_loop(ctx: RenderCtx) {
         match event {
             Event::EventsCleared => {
                 // Application update code.
-
+                let mut should_render = false;
+                for msg in msg_receiver.try_iter() {
+                    should_render = should_render || update_state(&mut state, msg);
+                }
                 // Queue a RedrawRequested event.
                 if should_render {
                     window.request_redraw();
-                    should_render = false;
                 }
             }
             Event::WindowEvent {
@@ -70,11 +99,12 @@ fn main_loop(ctx: RenderCtx) {
                 // by the OS.
             }
             Event::WindowEvent {
-                event: WindowEvent::ReceivedCharacter(new_val),
+                event: WindowEvent::ReceivedCharacter(c),
                 ..
             } => {
-                state.text.push(new_val);
-                should_render = true;
+                msg_sender
+                    .send(Msg::CharPressed(c))
+                    .expect("sending char event");
             }
             Event::WindowEvent {
                 event:
@@ -82,20 +112,17 @@ fn main_loop(ctx: RenderCtx) {
                         input:
                             KeyboardInput {
                                 virtual_keycode: Some(keycode),
+                                state: ElementState::Pressed,
                                 ..
                             },
                         ..
                     },
                 ..
-            } => match keycode {
-                VirtualKeyCode::Back => {
-                    state.text.pop();
-                }
-                VirtualKeyCode::Return => {
-                    state.text.clear();
-                }
-                _ => {}
-            },
+            } => {
+                msg_sender
+                    .send(Msg::KeyPressed(keycode))
+                    .expect("sending key event");
+            }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
