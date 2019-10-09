@@ -1,0 +1,20 @@
+[package]
+name = "editor"
+version = "0.1.0"
+authors = ["Pearce Keesling <pearce.keesling@lifeomic.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pathfinder_metal = { git = "https://github.com/servo/pathfinder.git" }
+pathfinder_renderer = { git = "https://github.com/servo/pathfinder.git" }
+pathfinder_canvas = { features = ["pf-text"], git = "https://github.com/servo/pathfinder.git" }
+pathfinder_content = { git = "https://github.com/servo/pathfinder.git" }
+pathfinder_geometry = { git = "https://github.com/servo/pathfinder.git" }
+pathfinder_gpu = { git = "https://github.com/servo/pathfinder.git" }
+metal = "0.14.0"
+winit = "0.20.0-alpha3"
+cocoa = "0.19.0"
+objc = "0.2.6"
+font-kit = "0.2.0"
