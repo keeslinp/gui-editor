@@ -343,6 +343,8 @@ dependencies = [
  "pathfinder_gpu 0.1.0 (git+https://github.com/servo/pathfinder.git)",
  "pathfinder_metal 0.1.0 (git+https://github.com/servo/pathfinder.git)",
  "pathfinder_renderer 0.1.0 (git+https://github.com/servo/pathfinder.git)",
+ "ropey 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "slotmap 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit 0.20.0-alpha3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1108,6 +1110,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ropey"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "smallvec 0.6.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "rust-argon2"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1254,6 +1264,11 @@ dependencies = [
 [[package]]
 name = "slab"
 version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "slotmap"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -1620,6 +1635,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum rdrand 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "678054eb77286b51581ba43620cc911abf02758c91f93f479767aed0f90458b2"
 "checksum redox_syscall 0.1.56 (registry+https://github.com/rust-lang/crates.io-index)" = "2439c63f3f6139d1b57529d16bc3b8bb855230c8efcc5d3a896c8bea7c3b1e84"
 "checksum redox_users 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4ecedbca3bf205f8d8f5c2b44d83cd0690e39ee84b951ed649e9f1841132b66d"
+"checksum ropey 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ba326a8508a4add47e7b260333aa2d896213a5f3572fde11ed6e9130241b7f71"
 "checksum rust-argon2 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4ca4eaef519b494d1f2848fc602d18816fed808a981aedf4f1f00ceb7c9d32cf"
 "checksum rustc-demangle 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)" = "4c691c0e608126e00913e33f0ccf3727d5fc84573623b8d65b2df340b5201783"
 "checksum rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
@@ -1639,6 +1655,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum servo-freetype-sys 4.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "2c4ccb6d0d32d277d3ef7dea86203d8210945eb7a45fba89dd445b3595dd0dfc"
 "checksum skribo 0.0.1 (git+https://github.com/linebender/skribo.git?rev=a2d683856ba1f2d0095b12dd7823d1602a87614e)" = "<none>"
 "checksum slab 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
+"checksum slotmap 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c46a3482db8f247956e464d783693ece164ca056e6e67563ee5505bdb86452cd"
 "checksum smallvec 0.6.10 (registry+https://github.com/rust-lang/crates.io-index)" = "ab606a9c5e214920bb66c458cd7be8ef094f813f20fe77a54cc7dbfff220d4b7"
 "checksum smithay-client-toolkit 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)" = "93960e8975909fcb14cc755de93af2149d8b8f4eb368315537d40cfd0f324054"
 "checksum stb_truetype 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "824210d6fb52cbc3ad2545270ead6860c7311aa5450642b078da4515937b6f7a"

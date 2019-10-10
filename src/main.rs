@@ -1,9 +1,9 @@
 use winit::{
-    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event::{ElementState, Event, KeyboardInput, WindowEvent},
     event_loop::ControlFlow,
 };
 
-use crossbeam_channel::unbounded;
+use crossbeam_channel::{unbounded, Sender};
 use pathfinder_canvas::{CanvasRenderingContext2D, FillStyle, TextAlign};
 use pathfinder_content::color::ColorU;
 use pathfinder_geometry::vector::{Vector2F, Vector2I};
@@ -11,42 +11,45 @@ use pathfinder_renderer::concurrent::rayon::RayonExecutor;
 use pathfinder_renderer::concurrent::scene_proxy::SceneProxy;
 use pathfinder_renderer::options::BuildOptions;
 
+mod buffer;
+mod handle_command;
+mod input;
+mod msg;
+mod state;
 mod window;
+mod cursor;
+mod point;
 
+use state::State;
+
+use handle_command::handle_command;
+
+use msg::{Msg, InputMsg};
 use window::{build_context, RenderCtx};
 
-#[derive(Default)]
-struct State {
-    text: String,
-}
-
-enum Msg {
-    CharPressed(char),
-    KeyPressed(VirtualKeyCode),
-}
-
-fn update_state(state: &mut State, msg: Msg) -> bool {
+fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
     match msg {
-        Msg::CharPressed(c) => {
-            state.text.push(c);
-            true
+        Msg::Input(input_msg) => {
+            if let Some(cmd) = input::build_cmd_from_input(input_msg) {
+                msg_sender.send(Msg::Cmd(cmd)).expect("sending command");
+            }
+            false // input does not alter state
         }
-        Msg::KeyPressed(key) => match key {
-            VirtualKeyCode::Back => {
-                state.text.pop();
-                true
-            }
-            VirtualKeyCode::Return => {
-                state.text.clear();
-                true
-            }
-            _ => false,
-        },
+        Msg::Cmd(cmd_msg) => handle_command(state, cmd_msg, msg_sender),
     }
 }
 
+fn render(canvas: &mut CanvasRenderingContext2D, state: &State) {
+    canvas.set_font_by_postscript_name("FiraMono-Regular");
+    canvas.set_font_size(14.0);
+    canvas.set_fill_style(FillStyle::Color(ColorU::from_u32(0xffffffff)));
+    state.buffers[state.current_buffer].render(canvas);
+    canvas.set_text_align(TextAlign::Right);
+    canvas.stroke_text("G", Vector2F::new(608.0, 464.0));
+}
+
 fn main_loop(ctx: RenderCtx) {
-    let mut state = State::default();
+    let mut state = State::new();
 
     let (msg_sender, msg_receiver) = unbounded();
 
@@ -63,7 +66,8 @@ fn main_loop(ctx: RenderCtx) {
                 // Application update code.
                 let mut should_render = false;
                 for msg in msg_receiver.try_iter() {
-                    should_render = should_render || update_state(&mut state, msg);
+                    should_render =
+                        should_render || update_state(&mut state, msg, msg_sender.clone());
                 }
                 // Queue a RedrawRequested event.
                 if should_render {
@@ -80,30 +84,19 @@ fn main_loop(ctx: RenderCtx) {
                 let mut canvas =
                     CanvasRenderingContext2D::new(font_context.clone(), window_size.to_f32());
 
-                // Draw the text.
-                canvas.set_font_by_postscript_name("FiraMono-Regular");
-                canvas.set_font_size(14.0);
-                canvas.set_fill_style(FillStyle::Color(ColorU::from_u32(0xffffffff)));
-                canvas.fill_text(&state.text, Vector2F::new(32.0, 48.0));
-                canvas.set_text_align(TextAlign::Right);
-                canvas.stroke_text("G", Vector2F::new(608.0, 464.0));
+                render(&mut canvas, &state);
 
                 // Render the canvas to screen.
                 let scene = SceneProxy::from_scene(canvas.into_scene(), RayonExecutor);
                 scene.build_and_render(&mut renderer, BuildOptions::default());
                 renderer.device.present_drawable();
-                // Redraw the application.
-                //
-                // It's preferrable to render in this event rather than in EventsCleared, since
-                // rendering in here allows the program to gracefully handle redraws requested
-                // by the OS.
             }
             Event::WindowEvent {
                 event: WindowEvent::ReceivedCharacter(c),
                 ..
             } => {
                 msg_sender
-                    .send(Msg::CharPressed(c))
+                    .send(Msg::Input(InputMsg::CharPressed(c)))
                     .expect("sending char event");
             }
             Event::WindowEvent {
@@ -120,7 +113,7 @@ fn main_loop(ctx: RenderCtx) {
                 ..
             } => {
                 msg_sender
-                    .send(Msg::KeyPressed(keycode))
+                    .send(Msg::Input(InputMsg::KeyPressed(keycode)))
                     .expect("sending key event");
             }
             Event::WindowEvent {
