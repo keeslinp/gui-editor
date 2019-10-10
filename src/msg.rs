@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::mode::Mode;
 use winit::event::VirtualKeyCode;
 
 pub enum InputMsg {
@@ -7,7 +8,7 @@ pub enum InputMsg {
     KeyPressed(VirtualKeyCode),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Direction {
     Left,
     Right,
@@ -22,18 +23,10 @@ pub enum DeleteDirection {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Mode {
-    Normal,
-    Insert,
-    Select,
-    Command,
-}
-
-#[derive(Debug, PartialEq)]
 pub enum Cmd {
     MoveCursor(Direction),
     // Quit,
-    // ChangeMode(Mode),
+    ChangeMode(Mode),
     InsertChar(char),
     // InsertCharAtPoint(char, Point),
     // InsertStringAtPoint(String, Point),

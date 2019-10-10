@@ -1,14 +1,11 @@
-use pathfinder_canvas::{CanvasRenderingContext2D};
-use pathfinder_geometry::vector::{Vector2F};
-use slotmap::{DefaultKey};
-use ropey::Rope;
 use crate::{
     cursor::Cursor,
-    msg::{
-        DeleteDirection,
-        Direction,
-    },
+    msg::{DeleteDirection, Direction},
 };
+use pathfinder_canvas::CanvasRenderingContext2D;
+use pathfinder_geometry::vector::Vector2F;
+use ropey::Rope;
+use slotmap::DefaultKey;
 
 pub type BufferKey = DefaultKey;
 
@@ -34,7 +31,7 @@ impl Buffer {
                 self.cursor.step(Direction::Right, &self.rope);
                 self.cursor.step(Direction::Right, &self.rope);
                 self.cursor.step(Direction::Right, &self.rope);
-            },
+            }
             c => {
                 self.rope.insert_char(self.cursor.index(&self.rope), c);
                 self.cursor.step(Direction::Right, &self.rope);
@@ -50,7 +47,7 @@ impl Buffer {
                     self.rope.remove(char_index - 1..char_index);
                     self.cursor.step(Direction::Left, &self.rope);
                 }
-            },
+            }
             DeleteDirection::After => {
                 let char_index = self.cursor.index(&self.rope);
                 self.rope.remove(char_index..char_index + 1);
@@ -60,7 +57,10 @@ impl Buffer {
 
     pub fn render(&self, canvas: &mut CanvasRenderingContext2D) {
         for (line_index, line) in self.rope.lines().enumerate() {
-            canvas.fill_text(line.as_str().unwrap_or("").trim_end(), Vector2F::new(10.0, 10.0 + (line_index as f32 * 20.0)));
+            canvas.fill_text(
+                line.as_str().unwrap_or("").trim_end(),
+                Vector2F::new(10.0, 10.0 + (line_index as f32 * 20.0)),
+            );
         }
         self.cursor.render(canvas);
     }

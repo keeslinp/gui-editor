@@ -12,25 +12,26 @@ use pathfinder_renderer::concurrent::scene_proxy::SceneProxy;
 use pathfinder_renderer::options::BuildOptions;
 
 mod buffer;
+mod cursor;
 mod handle_command;
 mod input;
+mod mode;
 mod msg;
+mod point;
 mod state;
 mod window;
-mod cursor;
-mod point;
 
 use state::State;
 
 use handle_command::handle_command;
 
-use msg::{Msg, InputMsg};
+use msg::{InputMsg, Msg};
 use window::{build_context, RenderCtx};
 
 fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
     match msg {
         Msg::Input(input_msg) => {
-            if let Some(cmd) = input::build_cmd_from_input(input_msg) {
+            if let Some(cmd) = input::build_cmd_from_input(input_msg, state.mode) {
                 msg_sender.send(Msg::Cmd(cmd)).expect("sending command");
             }
             false // input does not alter state
@@ -39,11 +40,12 @@ fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
     }
 }
 
-fn render(canvas: &mut CanvasRenderingContext2D, state: &State) {
+fn render(canvas: &mut CanvasRenderingContext2D, state: &State, window_size: Vector2I) {
     canvas.set_font_by_postscript_name("FiraMono-Regular");
     canvas.set_font_size(14.0);
     canvas.set_fill_style(FillStyle::Color(ColorU::from_u32(0xffffffff)));
     state.buffers[state.current_buffer].render(canvas);
+    state.mode.render(canvas, window_size.to_f32());
     canvas.set_text_align(TextAlign::Right);
     canvas.stroke_text("G", Vector2F::new(608.0, 464.0));
 }
@@ -60,6 +62,7 @@ fn main_loop(ctx: RenderCtx) {
         font_context,
         ..
     } = ctx;
+    window.request_redraw();
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::EventsCleared => {
@@ -84,7 +87,7 @@ fn main_loop(ctx: RenderCtx) {
                 let mut canvas =
                     CanvasRenderingContext2D::new(font_context.clone(), window_size.to_f32());
 
-                render(&mut canvas, &state);
+                render(&mut canvas, &state, window_size);
 
                 // Render the canvas to screen.
                 let scene = SceneProxy::from_scene(canvas.into_scene(), RayonExecutor);

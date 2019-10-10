@@ -10,15 +10,19 @@ pub fn handle_command(state: &mut State, cmd: Cmd, _msg_sender: Sender<Msg>) -> 
             let buffer = &mut state.buffers[state.current_buffer];
             buffer.insert_char(c);
             true
-        },
+        }
         Cmd::DeleteChar(direction) => {
             let buffer = &mut state.buffers[state.current_buffer];
             buffer.delete_char(direction);
             true
-        },
+        }
         Cmd::MoveCursor(direction) => {
             let buffer = &mut state.buffers[state.current_buffer];
             buffer.step(direction);
+            true
+        }
+        Cmd::ChangeMode(mode) => {
+            state.mode = mode;
             true
         }
     }

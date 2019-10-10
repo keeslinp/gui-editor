@@ -1,22 +1,18 @@
+use crate::{msg::Direction, point::Point};
+use pathfinder_canvas::CanvasRenderingContext2D;
+use pathfinder_geometry::{rect::RectF, vector::Vector2F};
 use ropey::Rope;
-use pathfinder_canvas::{CanvasRenderingContext2D};
-use pathfinder_geometry::{
-    vector::Vector2F,
-    rect::RectF,
-};
-use crate::{
-    msg::{Direction},
-    point::Point,
-};
 
 pub struct Cursor {
-    position: Point
+    position: Point,
+    saved_x: u16,
 }
 
 impl Cursor {
     pub fn new() -> Cursor {
         Cursor {
             position: Point::default(),
+            saved_x: 0,
         }
     }
 
@@ -26,9 +22,26 @@ impl Cursor {
 
     pub fn step(&mut self, direction: Direction, rope: &Rope) {
         self.position.step(direction, rope);
+        match direction {
+            Direction::Left | Direction::Right => {
+                self.saved_x = self.position.x;
+            }
+            Direction::Up | Direction::Down => {
+                if self.saved_x > self.position.x {
+                    self.position.x = self.saved_x;
+                }
+                self.position.prevent_runoff(rope);
+            }
+        }
     }
 
     pub fn render(&self, canvas: &mut CanvasRenderingContext2D) {
-        canvas.fill_rect(RectF::new(Vector2F::new(self.position.x as f32 * 8.4 + 10., self.position.y as f32 * 20.), Vector2F::new(8., 14.)));
+        canvas.fill_rect(RectF::new(
+            Vector2F::new(
+                self.position.x as f32 * 8.4 + 10.,
+                self.position.y as f32 * 20.,
+            ),
+            Vector2F::new(8., 14.),
+        ));
     }
 }

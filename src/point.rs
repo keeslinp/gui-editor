@@ -1,5 +1,5 @@
+use crate::msg::Direction;
 use ropey::Rope;
-use crate::msg::{Direction};
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Point {
@@ -15,6 +15,12 @@ impl Point {
         self.y = rope.char_to_line(index) as u16;
         self.x = (index - rope.line_to_char(self.y as usize)) as u16;
     }
+    pub fn prevent_runoff(&mut self, rope: &Rope) {
+        let line_len = rope.line(self.y as usize).len_chars() as u16;
+        if line_len <= self.x {
+            self.x = line_len - 1;
+        }
+    }
     pub fn step(&mut self, direction: Direction, rope: &Rope) {
         match direction {
             Direction::Left => {
@@ -22,23 +28,23 @@ impl Point {
                 if index > 0 {
                     self.step_to_index(index - 1, rope);
                 }
-            },
+            }
             Direction::Right => {
                 let index = self.index(rope);
                 if index < rope.len_chars() {
                     self.step_to_index(index + 1, rope);
                 }
-            },
+            }
             Direction::Down => {
-                if self.y < rope.len_lines() as u16 {
+                if self.y + 1 < rope.len_lines() as u16 {
                     self.y += 1;
                 }
-            },
+            }
             Direction::Up => {
                 if self.y > 0 {
                     self.y -= 1;
                 }
-            },
+            }
         }
     }
 }
