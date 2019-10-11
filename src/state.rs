@@ -1,5 +1,6 @@
 use crate::{
     buffer::{Buffer, BufferKey},
+    command::CommandBuffer,
     mode::Mode,
 };
 use slotmap::{SecondaryMap, SlotMap};
@@ -9,6 +10,7 @@ pub struct State {
     pub buffers: SecondaryMap<BufferKey, Buffer>,
     pub current_buffer: BufferKey,
     pub mode: Mode,
+    pub command_buffer: CommandBuffer,
 }
 
 impl State {
@@ -22,6 +24,7 @@ impl State {
             buffer_keys,
             current_buffer,
             mode: Mode::Normal,
+            command_buffer: CommandBuffer::default(),
         }
     }
 }

@@ -3,6 +3,7 @@
 use crate::mode::Mode;
 use winit::event::VirtualKeyCode;
 
+#[derive(PartialEq, Debug)]
 pub enum InputMsg {
     CharPressed(char),
     KeyPressed(VirtualKeyCode),
@@ -25,7 +26,7 @@ pub enum DeleteDirection {
 #[derive(Debug, PartialEq)]
 pub enum Cmd {
     MoveCursor(Direction),
-    // Quit,
+    Quit,
     ChangeMode(Mode),
     InsertChar(char),
     // InsertCharAtPoint(char, Point),
@@ -45,6 +46,8 @@ pub enum Cmd {
     // Paste,
     // PasteAtPoint(Point),
 }
+
+#[derive(PartialEq, Debug)]
 pub enum Msg {
     Input(InputMsg),
     Cmd(Cmd),

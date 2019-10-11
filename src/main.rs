@@ -12,6 +12,7 @@ use pathfinder_renderer::concurrent::scene_proxy::SceneProxy;
 use pathfinder_renderer::options::BuildOptions;
 
 mod buffer;
+mod command;
 mod cursor;
 mod handle_command;
 mod input;
@@ -25,7 +26,7 @@ use state::State;
 
 use handle_command::handle_command;
 
-use msg::{InputMsg, Msg};
+use msg::{Cmd, InputMsg, Msg};
 use window::{build_context, RenderCtx};
 
 fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
@@ -40,12 +41,15 @@ fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
     }
 }
 
-fn render(canvas: &mut CanvasRenderingContext2D, state: &State, window_size: Vector2I) {
+fn render(canvas: &mut CanvasRenderingContext2D, state: &State, window_size: Vector2F) {
     canvas.set_font_by_postscript_name("FiraMono-Regular");
     canvas.set_font_size(14.0);
     canvas.set_fill_style(FillStyle::Color(ColorU::from_u32(0xffffffff)));
     state.buffers[state.current_buffer].render(canvas);
-    state.mode.render(canvas, window_size.to_f32());
+    state.mode.render(canvas, window_size);
+    if state.mode == mode::Mode::Command {
+        state.command_buffer.render(canvas, window_size);
+    }
     canvas.set_text_align(TextAlign::Right);
     canvas.stroke_text("G", Vector2F::new(608.0, 464.0));
 }
@@ -69,8 +73,12 @@ fn main_loop(ctx: RenderCtx) {
                 // Application update code.
                 let mut should_render = false;
                 for msg in msg_receiver.try_iter() {
-                    should_render =
-                        should_render || update_state(&mut state, msg, msg_sender.clone());
+                    if msg == Msg::Cmd(Cmd::Quit) {
+                        *control_flow = ControlFlow::Exit;
+                    } else {
+                        should_render =
+                            update_state(&mut state, msg, msg_sender.clone()) || should_render;
+                    }
                 }
                 // Queue a RedrawRequested event.
                 if should_render {
@@ -87,7 +95,7 @@ fn main_loop(ctx: RenderCtx) {
                 let mut canvas =
                     CanvasRenderingContext2D::new(font_context.clone(), window_size.to_f32());
 
-                render(&mut canvas, &state, window_size);
+                render(&mut canvas, &state, window_size.to_f32());
 
                 // Render the canvas to screen.
                 let scene = SceneProxy::from_scene(canvas.into_scene(), RayonExecutor);

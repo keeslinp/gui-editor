@@ -14,8 +14,19 @@ pub fn build_cmd_from_input(input_msg: InputMsg, mode: Mode) -> Option<Cmd> {
         (_, InputMsg::KeyPressed(VirtualKeyCode::Up)) => Some(Cmd::MoveCursor(Direction::Up)),
 
         // Insert
-        (Mode::Insert, InputMsg::CharPressed(c)) => Some(Cmd::InsertChar(c)),
+        (Mode::Insert, InputMsg::CharPressed(c)) if c.is_alphanumeric() => Some(Cmd::InsertChar(c)),
         (Mode::Insert, InputMsg::KeyPressed(key)) => match key {
+            VirtualKeyCode::Back => Some(Cmd::DeleteChar(DeleteDirection::Before)),
+            VirtualKeyCode::Return => Some(Cmd::InsertChar('\n')),
+            VirtualKeyCode::Escape => Some(Cmd::ChangeMode(Mode::Normal)),
+            _ => None,
+        },
+
+        // Command
+        (Mode::Command, InputMsg::CharPressed(c)) if c.is_alphanumeric() => {
+            Some(Cmd::InsertChar(c))
+        }
+        (Mode::Command, InputMsg::KeyPressed(key)) => match key {
             VirtualKeyCode::Back => Some(Cmd::DeleteChar(DeleteDirection::Before)),
             VirtualKeyCode::Return => Some(Cmd::InsertChar('\n')),
             VirtualKeyCode::Escape => Some(Cmd::ChangeMode(Mode::Normal)),
@@ -29,6 +40,7 @@ pub fn build_cmd_from_input(input_msg: InputMsg, mode: Mode) -> Option<Cmd> {
             'k' => Some(Cmd::MoveCursor(Direction::Up)),
             'j' => Some(Cmd::MoveCursor(Direction::Down)),
             'i' => Some(Cmd::ChangeMode(Mode::Insert)),
+            ':' => Some(Cmd::ChangeMode(Mode::Command)),
             _ => None,
         },
         _ => None,

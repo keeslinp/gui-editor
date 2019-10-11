@@ -5,8 +5,8 @@ use pathfinder_geometry::vector::Vector2F;
 pub enum Mode {
     Normal,
     Insert,
+    Command,
     // Select,
-    // Command,
 }
 
 impl Mode {
@@ -14,6 +14,7 @@ impl Mode {
         match self {
             Mode::Normal => "Normal",
             Mode::Insert => "Insert",
+            Mode::Command => "Command",
         }
     }
     pub fn render(&self, canvas: &mut CanvasRenderingContext2D, bounds: Vector2F) {
