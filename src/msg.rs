@@ -36,7 +36,7 @@ pub enum Cmd {
     // Jump(JumpType),
     // RunCommand,
     // WriteBuffer(std::path::PathBuf),
-    // LoadFile(std::path::PathBuf),
+    LoadFile(std::path::PathBuf),
     // BufferLoaded,
     // BufferModified,
     // SearchFiles,

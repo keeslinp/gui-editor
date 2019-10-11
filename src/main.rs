@@ -67,10 +67,11 @@ fn main_loop(ctx: RenderCtx) {
         ..
     } = ctx;
     window.request_redraw();
+    // TODO (perf): Do some performance improvements on this main loop
+    // If there are any serious problems it is better to find out now
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::EventsCleared => {
-                // Application update code.
                 let mut should_render = false;
                 for msg in msg_receiver.try_iter() {
                     if msg == Msg::Cmd(Cmd::Quit) {
@@ -91,13 +92,11 @@ fn main_loop(ctx: RenderCtx) {
             } => {
                 let inner_size = window.inner_size();
                 let window_size = Vector2I::new(inner_size.width as i32, inner_size.height as i32);
-                // Make a canvas.
                 let mut canvas =
                     CanvasRenderingContext2D::new(font_context.clone(), window_size.to_f32());
 
                 render(&mut canvas, &state, window_size.to_f32());
 
-                // Render the canvas to screen.
                 let scene = SceneProxy::from_scene(canvas.into_scene(), RayonExecutor);
                 scene.build_and_render(&mut renderer, BuildOptions::default());
                 renderer.device.present_drawable();

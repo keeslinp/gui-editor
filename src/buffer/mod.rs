@@ -22,6 +22,14 @@ impl Buffer {
         }
     }
 
+    pub fn load_file(file_path: &std::path::Path) -> Buffer {
+        Buffer {
+            rope: Rope::from_reader(std::fs::File::open(file_path).expect("loading file"))
+                .expect("building rope"),
+            cursor: Cursor::new(),
+        }
+    }
+
     pub fn insert_char(&mut self, c: char) {
         match c {
             '\t' => {
@@ -68,4 +76,5 @@ impl Buffer {
     pub fn step(&mut self, direction: Direction) {
         self.cursor.step(direction, &self.rope);
     }
+
 }

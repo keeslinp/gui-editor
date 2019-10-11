@@ -23,6 +23,14 @@ impl CommandBuffer {
                     .send(Msg::Cmd(Cmd::Quit))
                     .expect("Sending quit message");
             }
+            cmd if cmd.starts_with("edit") => {
+                let maybe_file = cmd.split(' ').skip(1).next();
+                if let Some(file) = maybe_file {
+                    msg_sender.send(Msg::Cmd(Cmd::LoadFile(std::path::PathBuf::from(file)))).expect("sending load file command");
+                } else {
+                    eprintln!("Missing file");
+                }
+            }
             buffer => {
                 eprintln!("Unknown command: {}", buffer);
             }
