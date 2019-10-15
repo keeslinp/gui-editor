@@ -1,8 +1,12 @@
 use crate::{
     mode::Mode,
     msg::{Cmd, DeleteDirection, Direction, Msg},
+    renderer::RenderFrame,
 };
 use crossbeam_channel::Sender;
+
+use winit::dpi::PhysicalSize;
+use wgpu_glyph::{Scale, Section};
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct CommandBuffer {
@@ -78,10 +82,13 @@ impl CommandBuffer {
             _ => false,
         }
     }
-    // pub fn render(&self, canvas: &mut CanvasRenderingContext2D, bounds: Vector2F) {
-    //     canvas.fill_text(
-    //         &format!(":{}", self.buffer),
-    //         Vector2F::new(10., bounds.y() - 10.),
-    //     );
-    // }
+    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
+        render_frame.queue_text(Section {
+            text: &format!(":{}", self.buffer),
+            screen_position: (10., window_size.height as f32 - 30.),
+            color: [0.514, 0.58, 0.588, 1. ],
+            scale: Scale { x: 30., y: 30. },
+            ..Section::default()
+        });
+    }
 }

@@ -44,9 +44,9 @@ fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
 fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSize) {
     state.buffers[state.current_buffer].render(render_frame);
     state.mode.render(render_frame, window_size);
-    // if state.mode == mode::Mode::Command {
-    //     state.command_buffer.render(canvas, window_size);
-    // }
+    if state.mode == mode::Mode::Command {
+        state.command_buffer.render(render_frame, window_size);
+    }
 }
 
 fn main() {
