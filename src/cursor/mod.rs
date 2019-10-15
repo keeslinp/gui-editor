@@ -1,6 +1,4 @@
 use crate::{msg::Direction, point::Point};
-use pathfinder_canvas::CanvasRenderingContext2D;
-use pathfinder_geometry::{rect::RectF, vector::Vector2F};
 use ropey::Rope;
 
 pub struct Cursor {
@@ -35,13 +33,13 @@ impl Cursor {
         }
     }
 
-    pub fn render(&self, canvas: &mut CanvasRenderingContext2D) {
-        canvas.fill_rect(RectF::new(
-            Vector2F::new(
-                self.position.x as f32 * 8.4 + 10.,
-                self.position.y as f32 * 20.,
-            ),
-            Vector2F::new(8., 14.),
-        ));
-    }
+    // pub fn render(&self, canvas: &mut CanvasRenderingContext2D) {
+    //     canvas.fill_rect(RectF::new(
+    //         Vector2F::new(
+    //             self.position.x as f32 * 8.4 + 10.,
+    //             self.position.y as f32 * 20.,
+    //         ),
+    //         Vector2F::new(8., 14.),
+    //     ));
+    // }
 }

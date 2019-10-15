@@ -1,15 +1,13 @@
 use winit::{
     event::{ElementState, Event, KeyboardInput, WindowEvent},
-    event_loop::ControlFlow,
+    event_loop::{ControlFlow, EventLoop},
+    window::Window,
+    dpi::PhysicalSize,
 };
+use wgpu::{CommandEncoder, Device, Surface, SwapChain, SwapChainOutput};
+use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section, Scale};
 
 use crossbeam_channel::{unbounded, Sender};
-use pathfinder_canvas::{CanvasRenderingContext2D, FillStyle, TextAlign};
-use pathfinder_content::color::ColorU;
-use pathfinder_geometry::vector::{Vector2F, Vector2I};
-use pathfinder_renderer::concurrent::rayon::RayonExecutor;
-use pathfinder_renderer::concurrent::scene_proxy::SceneProxy;
-use pathfinder_renderer::options::BuildOptions;
 
 mod buffer;
 mod command;
@@ -19,15 +17,17 @@ mod input;
 mod mode;
 mod msg;
 mod point;
+mod renderer;
 mod state;
 mod window;
+
+use renderer::RenderFrame;
 
 use state::State;
 
 use handle_command::handle_command;
 
 use msg::{Cmd, InputMsg, Msg};
-use window::{build_context, RenderCtx};
 
 fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
     match msg {
@@ -41,31 +41,63 @@ fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
     }
 }
 
-fn render(canvas: &mut CanvasRenderingContext2D, state: &State, window_size: Vector2F) {
-    canvas.set_font_by_postscript_name("FiraMono-Regular");
-    canvas.set_font_size(14.0);
-    canvas.set_fill_style(FillStyle::Color(ColorU::from_u32(0xffffffff)));
-    state.buffers[state.current_buffer].render(canvas);
-    state.mode.render(canvas, window_size);
-    if state.mode == mode::Mode::Command {
-        state.command_buffer.render(canvas, window_size);
-    }
-    canvas.set_text_align(TextAlign::Right);
-    canvas.stroke_text("G", Vector2F::new(608.0, 464.0));
+fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSize) {
+    state.buffers[state.current_buffer].render(render_frame);
+    state.mode.render(render_frame, window_size);
+    // if state.mode == mode::Mode::Command {
+    //     state.command_buffer.render(canvas, window_size);
+    // }
 }
 
-fn main_loop(ctx: RenderCtx) {
+fn main() {
+
+
+    // All this is here because of lifetime bullshit
+    let event_loop = EventLoop::new();
+
+    let window = winit::window::WindowBuilder::new()
+        .with_title("Pathfinder Metal".to_string())
+        .build(&event_loop)
+        .unwrap();
+
+    let adapter = wgpu::Adapter::request(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::HighPerformance,
+        backends: wgpu::BackendBit::all(),
+    })
+    .expect("Request adapter");
+
+    let (mut device, mut queue) = adapter.request_device(&wgpu::DeviceDescriptor {
+        extensions: wgpu::Extensions {
+            anisotropic_filtering: false,
+        },
+        limits: wgpu::Limits { max_bind_groups: 1 },
+    });
+
+    let render_format = wgpu::TextureFormat::Bgra8UnormSrgb;
+    let mut size = window.inner_size().to_physical(window.hidpi_factor());
+
+    let surface = wgpu::Surface::create(&window);
+
+    // Prepare glyph_brush
+    let inconsolata: &[u8] = include_bytes!("FiraMono-Regular.ttf");
+    let mut glyph_brush =
+        GlyphBrushBuilder::using_font_bytes(inconsolata).build(&mut device, render_format);
+    let mut swap_chain = device.create_swap_chain(
+        &surface,
+        &wgpu::SwapChainDescriptor {
+            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+            format: render_format,
+            width: size.width.round() as u32,
+            height: size.height.round() as u32,
+            present_mode: wgpu::PresentMode::Vsync,
+        },
+    );
+
+    // END OF SETUP
     let mut state = State::new();
 
     let (msg_sender, msg_receiver) = unbounded();
 
-    let RenderCtx {
-        event_loop,
-        window,
-        mut renderer,
-        font_context,
-        ..
-    } = ctx;
     window.request_redraw();
     // TODO (perf): Do some performance improvements on this main loop
     // If there are any serious problems it is better to find out now
@@ -86,20 +118,31 @@ fn main_loop(ctx: RenderCtx) {
                     window.request_redraw();
                 }
             }
+            winit::event::Event::WindowEvent {
+                event: winit::event::WindowEvent::Resized(new_size),
+                ..
+            } => {
+                size = new_size.to_physical(window.hidpi_factor());
+
+                swap_chain = device.create_swap_chain(
+                    &surface,
+                    &wgpu::SwapChainDescriptor {
+                        usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                        format: render_format,
+                        width: size.width.round() as u32,
+                        height: size.height.round() as u32,
+                        present_mode: wgpu::PresentMode::Vsync,
+                    },
+                );
+                window.request_redraw();
+            }
             Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                let inner_size = window.inner_size();
-                let window_size = Vector2I::new(inner_size.width as i32, inner_size.height as i32);
-                let mut canvas =
-                    CanvasRenderingContext2D::new(font_context.clone(), window_size.to_f32());
-
-                render(&mut canvas, &state, window_size.to_f32());
-
-                let scene = SceneProxy::from_scene(canvas.into_scene(), RayonExecutor);
-                scene.build_and_render(&mut renderer, BuildOptions::default());
-                renderer.device.present_drawable();
+                let mut render_frame = RenderFrame::start_frame(&mut swap_chain, &mut device, &mut glyph_brush, &mut queue);
+                render(&mut render_frame, &state, size);
+                render_frame.submit(&size);
             }
             Event::WindowEvent {
                 event: WindowEvent::ReceivedCharacter(c),
@@ -136,9 +179,4 @@ fn main_loop(ctx: RenderCtx) {
             _ => *control_flow = ControlFlow::Wait,
         }
     });
-}
-
-fn main() {
-    let render_ctx = build_context();
-    main_loop(render_ctx);
 }

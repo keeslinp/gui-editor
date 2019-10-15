@@ -1,8 +1,8 @@
 use crate::{
+    buffer::Buffer,
     mode::Mode,
     msg::{Cmd, Msg},
     state::State,
-    buffer::Buffer,
 };
 use crossbeam_channel::Sender;
 

@@ -1,5 +1,7 @@
-use pathfinder_canvas::CanvasRenderingContext2D;
-use pathfinder_geometry::vector::Vector2F;
+use winit::dpi::PhysicalSize;
+use wgpu_glyph::{Scale, Section};
+
+use crate::renderer::RenderFrame;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
@@ -17,8 +19,14 @@ impl Mode {
             Mode::Command => "Command",
         }
     }
-    pub fn render(&self, canvas: &mut CanvasRenderingContext2D, bounds: Vector2F) {
+    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
         let value = self.as_str();
-        canvas.fill_text(value, bounds - Vector2F::new(value.len() as f32 * 9., 15.));
+        render_frame.queue_text(Section {
+            text: value,
+            screen_position: (window_size.width as f32 - (value.len() as f32 * 20.), window_size.height as f32 - 30.),
+            color: [0.514, 0.58, 0.588, 1. ],
+            scale: Scale { x: 30., y: 30. },
+            ..Section::default()
+        });
     }
 }

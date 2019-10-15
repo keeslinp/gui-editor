@@ -1,11 +1,11 @@
 use crate::{
     cursor::Cursor,
     msg::{DeleteDirection, Direction},
+    renderer::RenderFrame,
 };
-use pathfinder_canvas::CanvasRenderingContext2D;
-use pathfinder_geometry::vector::Vector2F;
 use ropey::Rope;
 use slotmap::DefaultKey;
+use wgpu_glyph::{Section, Scale};
 
 pub type BufferKey = DefaultKey;
 
@@ -63,18 +63,23 @@ impl Buffer {
         };
     }
 
-    pub fn render(&self, canvas: &mut CanvasRenderingContext2D) {
+    pub fn render(&self, render_frame: &mut RenderFrame) {
         for (line_index, line) in self.rope.lines().enumerate() {
-            canvas.fill_text(
-                line.as_str().unwrap_or("").trim_end(),
-                Vector2F::new(10.0, 10.0 + (line_index as f32 * 20.0)),
-            );
+            if let Some(text) = line.as_str() {
+                render_frame.queue_text(Section {
+                    text,
+                    screen_position: (
+                        10., 10. + line_index as f32 * 25.),
+                    color: [0.514, 0.58, 0.588, 1. ],
+                    scale: Scale { x: 30., y: 30. },
+                    ..Section::default()
+                });
+            }
         }
-        self.cursor.render(canvas);
+        // self.cursor.render(canvas);
     }
 
     pub fn step(&mut self, direction: Direction) {
         self.cursor.step(direction, &self.rope);
     }
-
 }

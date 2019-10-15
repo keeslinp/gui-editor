@@ -23,9 +23,7 @@ pub fn build_cmd_from_input(input_msg: InputMsg, mode: Mode) -> Option<Cmd> {
         },
 
         // Command
-        (Mode::Command, InputMsg::CharPressed(c)) if !c.is_control() => {
-            Some(Cmd::InsertChar(c))
-        }
+        (Mode::Command, InputMsg::CharPressed(c)) if !c.is_control() => Some(Cmd::InsertChar(c)),
         (Mode::Command, InputMsg::KeyPressed(key)) => match key {
             VirtualKeyCode::Back => Some(Cmd::DeleteChar(DeleteDirection::Before)),
             VirtualKeyCode::Return => Some(Cmd::InsertChar('\n')),

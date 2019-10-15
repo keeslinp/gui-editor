@@ -3,8 +3,6 @@ use crate::{
     msg::{Cmd, DeleteDirection, Direction, Msg},
 };
 use crossbeam_channel::Sender;
-use pathfinder_canvas::CanvasRenderingContext2D;
-use pathfinder_geometry::vector::Vector2F;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct CommandBuffer {
@@ -26,7 +24,9 @@ impl CommandBuffer {
             cmd if cmd.starts_with("edit") => {
                 let maybe_file = cmd.split(' ').skip(1).next();
                 if let Some(file) = maybe_file {
-                    msg_sender.send(Msg::Cmd(Cmd::LoadFile(std::path::PathBuf::from(file)))).expect("sending load file command");
+                    msg_sender
+                        .send(Msg::Cmd(Cmd::LoadFile(std::path::PathBuf::from(file))))
+                        .expect("sending load file command");
                 } else {
                     eprintln!("Missing file");
                 }
@@ -78,10 +78,10 @@ impl CommandBuffer {
             _ => false,
         }
     }
-    pub fn render(&self, canvas: &mut CanvasRenderingContext2D, bounds: Vector2F) {
-        canvas.fill_text(
-            &format!(":{}", self.buffer),
-            Vector2F::new(10., bounds.y() - 10.),
-        );
-    }
+    // pub fn render(&self, canvas: &mut CanvasRenderingContext2D, bounds: Vector2F) {
+    //     canvas.fill_text(
+    //         &format!(":{}", self.buffer),
+    //         Vector2F::new(10., bounds.y() - 10.),
+    //     );
+    // }
 }
