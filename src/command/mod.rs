@@ -1,15 +1,12 @@
 use crate::{
+    error::{CommandError, Result},
     mode::Mode,
     msg::{Cmd, DeleteDirection, Direction, Msg},
     render::RenderFrame,
-    error::{CommandError, Result},
 };
 
 use wgpu_glyph::{Scale, Section};
-use winit::{
-    dpi::PhysicalSize,
-    event_loop::EventLoopProxy,
-};
+use winit::{dpi::PhysicalSize, event_loop::EventLoopProxy};
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct CommandBuffer {
@@ -40,9 +37,7 @@ impl CommandBuffer {
                     Err(CommandError::MissingArg)
                 }
             }
-            buffer => {
-                Err(CommandError::UnknownCommand(buffer.to_owned()))
-            }
+            buffer => Err(CommandError::UnknownCommand(buffer.to_owned())),
         };
         self.buffer.clear();
         self.position = 0;

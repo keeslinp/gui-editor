@@ -1,8 +1,8 @@
 use crate::{
     cursor::Cursor,
+    error::Result,
     msg::{DeleteDirection, Direction},
     render::RenderFrame,
-    error::Result,
 };
 use ropey::Rope;
 use slotmap::DefaultKey;
@@ -69,7 +69,13 @@ impl Buffer {
 
     pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
         let visible_lines = get_visible_lines(window_size);
-        for (line_index, line) in self.rope.lines().skip(self.offset).enumerate().take(visible_lines) {
+        for (line_index, line) in self
+            .rope
+            .lines()
+            .skip(self.offset)
+            .enumerate()
+            .take(visible_lines)
+        {
             if let Some(text) = line.as_str() {
                 render_frame.queue_text(Section {
                     text,

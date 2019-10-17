@@ -14,12 +14,8 @@ impl CommandError {
     pub fn as_string(&self) -> String {
         use CommandError::*;
         match self {
-            MissingArg => {
-                "Missing an argument".to_owned()
-            },
-            UnknownCommand(cmd) => {
-                format!("Unknown command: {}", cmd)
-            },
+            MissingArg => "Missing an argument".to_owned(),
+            UnknownCommand(cmd) => format!("Unknown command: {}", cmd),
         }
     }
 }
@@ -28,18 +24,14 @@ impl Error {
     pub fn as_string(&self) -> String {
         use Error::*;
         match self {
-            IOError(err) => {
-                format!("IOError: {:#}", err)
-            },
-            Command(err) => {
-                err.as_string()
-            },
+            IOError(err) => format!("IOError: {:#}", err),
+            Command(err) => err.as_string(),
         }
     }
 }
 
 impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Error{
+    fn from(err: std::io::Error) -> Error {
         Error::IOError(err.to_string())
     }
 }

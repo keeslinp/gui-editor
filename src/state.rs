@@ -1,8 +1,8 @@
 use crate::{
     buffer::{Buffer, BufferKey},
     command::CommandBuffer,
-    mode::Mode,
     error::Error,
+    mode::Mode,
 };
 use slotmap::{SecondaryMap, SlotMap};
 
