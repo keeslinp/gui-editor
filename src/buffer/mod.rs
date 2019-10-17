@@ -1,7 +1,7 @@
 use crate::{
     cursor::Cursor,
     msg::{DeleteDirection, Direction},
-    renderer::RenderFrame,
+    render::RenderFrame,
 };
 use ropey::Rope;
 use slotmap::DefaultKey;

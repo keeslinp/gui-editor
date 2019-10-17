@@ -1,7 +1,7 @@
 use winit::dpi::PhysicalSize;
 use wgpu_glyph::{Scale, Section};
 
-use crate::renderer::RenderFrame;
+use crate::render::RenderFrame;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {

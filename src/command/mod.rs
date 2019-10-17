@@ -1,7 +1,7 @@
 use crate::{
     mode::Mode,
     msg::{Cmd, DeleteDirection, Direction, Msg},
-    renderer::RenderFrame,
+    render::RenderFrame,
 };
 use crossbeam_channel::Sender;
 

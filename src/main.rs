@@ -4,7 +4,7 @@ use winit::{
     window::Window,
     dpi::PhysicalSize,
 };
-use wgpu::{CommandEncoder, Device, Surface, SwapChain, SwapChainOutput};
+use wgpu::{CommandEncoder, Device, Surface, SwapChain, SwapChainOutput, Binding, BindGroupDescriptor, BindGroupLayoutBinding, BufferDescriptor};
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section, Scale};
 
 use crossbeam_channel::{unbounded, Sender};
@@ -17,11 +17,10 @@ mod input;
 mod mode;
 mod msg;
 mod point;
-mod renderer;
+mod render;
 mod state;
-mod window;
 
-use renderer::RenderFrame;
+use render::{RenderFrame, Renderer};
 
 use state::State;
 
@@ -42,6 +41,7 @@ fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
 }
 
 fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSize) {
+    render_frame.clear();
     state.buffers[state.current_buffer].render(render_frame);
     state.mode.render(render_frame, window_size);
     if state.mode == mode::Mode::Command {
@@ -60,38 +60,9 @@ fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let adapter = wgpu::Adapter::request(&wgpu::RequestAdapterOptions {
-        power_preference: wgpu::PowerPreference::HighPerformance,
-        backends: wgpu::BackendBit::all(),
-    })
-    .expect("Request adapter");
+    let mut renderer = Renderer::on_window(&window);
 
-    let (mut device, mut queue) = adapter.request_device(&wgpu::DeviceDescriptor {
-        extensions: wgpu::Extensions {
-            anisotropic_filtering: false,
-        },
-        limits: wgpu::Limits { max_bind_groups: 1 },
-    });
-
-    let render_format = wgpu::TextureFormat::Bgra8UnormSrgb;
     let mut size = window.inner_size().to_physical(window.hidpi_factor());
-
-    let surface = wgpu::Surface::create(&window);
-
-    // Prepare glyph_brush
-    let inconsolata: &[u8] = include_bytes!("FiraMono-Regular.ttf");
-    let mut glyph_brush =
-        GlyphBrushBuilder::using_font_bytes(inconsolata).build(&mut device, render_format);
-    let mut swap_chain = device.create_swap_chain(
-        &surface,
-        &wgpu::SwapChainDescriptor {
-            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-            format: render_format,
-            width: size.width.round() as u32,
-            height: size.height.round() as u32,
-            present_mode: wgpu::PresentMode::Vsync,
-        },
-    );
 
     // END OF SETUP
     let mut state = State::new();
@@ -123,24 +94,24 @@ fn main() {
                 ..
             } => {
                 size = new_size.to_physical(window.hidpi_factor());
-
-                swap_chain = device.create_swap_chain(
-                    &surface,
-                    &wgpu::SwapChainDescriptor {
-                        usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                        format: render_format,
-                        width: size.width.round() as u32,
-                        height: size.height.round() as u32,
-                        present_mode: wgpu::PresentMode::Vsync,
-                    },
-                );
+                renderer.update_size(size);
+                // swap_chain = device.create_swap_chain(
+                //     &surface,
+                //     &wgpu::SwapChainDescriptor {
+                //         usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                //         format: render_format,
+                //         width: size.width.round() as u32,
+                //         height: size.height.round() as u32,
+                //         present_mode: wgpu::PresentMode::Vsync,
+                //     },
+                // );
                 window.request_redraw();
             }
             Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                let mut render_frame = RenderFrame::start_frame(&mut swap_chain, &mut device, &mut glyph_brush, &mut queue);
+                let mut render_frame = renderer.start_frame();
                 render(&mut render_frame, &state, size);
                 render_frame.submit(&size);
             }
