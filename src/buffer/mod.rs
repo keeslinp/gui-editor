@@ -62,7 +62,7 @@ impl Buffer {
             }
             DeleteDirection::After => {
                 let char_index = self.cursor.index(&self.rope);
-                self.rope.remove(char_index..char_index + 1);
+                self.rope.remove(char_index..=char_index);
             }
         };
     }

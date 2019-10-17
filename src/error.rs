@@ -24,7 +24,7 @@ impl Error {
     pub fn as_string(&self) -> String {
         use Error::*;
         match self {
-            IOError(err) => format!("IOError: {:#}", err),
+            IOError(err) => format!("IOError: {}", err),
             Command(err) => err.as_string(),
         }
     }

@@ -27,7 +27,7 @@ impl CommandBuffer {
                 Ok(())
             }
             cmd if cmd.starts_with("edit") => {
-                let maybe_file = cmd.split(' ').skip(1).next();
+                let maybe_file = cmd.split(' ').nth(2);
                 if let Some(file) = maybe_file {
                     msg_sender
                         .send_event(Msg::Cmd(Cmd::LoadFile(std::path::PathBuf::from(file))))
