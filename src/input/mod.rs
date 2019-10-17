@@ -39,6 +39,7 @@ pub fn build_cmd_from_input(input_msg: InputMsg, mode: Mode) -> Option<Cmd> {
             'j' => Some(Cmd::MoveCursor(Direction::Down)),
             'i' => Some(Cmd::ChangeMode(Mode::Insert)),
             ':' => Some(Cmd::ChangeMode(Mode::Command)),
+            'd' => Some(Cmd::DeleteChar(DeleteDirection::After)),
             _ => None,
         },
         _ => None,
