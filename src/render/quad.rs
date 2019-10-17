@@ -1,5 +1,8 @@
 use std::mem;
-use vek::mat::repr_c::column_major::*;
+pub use vek::{
+    mat::repr_c::column_major::*,
+    vec::repr_c::*,
+};
 
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
@@ -12,29 +15,12 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(device: &mut wgpu::Device) -> Pipeline {
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Nearest,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
-            lod_min_clamp: -100.0,
-            lod_max_clamp: 100.0,
-            compare_function: wgpu::CompareFunction::Always,
-        });
-
         let constant_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             bindings: &[
                 wgpu::BindGroupLayoutBinding {
                     binding: 0,
                     visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::UniformBuffer { dynamic: true },
-                },
-                wgpu::BindGroupLayoutBinding {
-                    binding: 1,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler,
+                    ty: wgpu::BindingType::UniformBuffer { dynamic: false },
                 },
             ],
         });
@@ -54,10 +40,6 @@ impl Pipeline {
                         buffer: &transform_buffer,
                         range: 0..64,
                     },
-                },
-                wgpu::Binding {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
                 },
             ],
         });
@@ -122,23 +104,18 @@ impl Pipeline {
                     attributes: &[
                         wgpu::VertexAttributeDescriptor {
                             shader_location: 1,
-                            format: wgpu::VertexFormat::Float4,
+                            format: wgpu::VertexFormat::Float2,
                             offset: 0,
                         },
                         wgpu::VertexAttributeDescriptor {
                             shader_location: 2,
                             format: wgpu::VertexFormat::Float2,
-                            offset: 4 * 4,
+                            offset: 4 * 2,
                         },
                         wgpu::VertexAttributeDescriptor {
                             shader_location: 3,
-                            format: wgpu::VertexFormat::Float2,
-                            offset: 4 * (4 + 2),
-                        },
-                        wgpu::VertexAttributeDescriptor {
-                            shader_location: 4,
                             format: wgpu::VertexFormat::Uint,
-                            offset: 4 * (4 + 2 + 2),
+                            offset: 4 * (2 + 2),
                         },
                     ],
                 },
@@ -259,7 +236,6 @@ const QUAD_VERTS: [Vertex; 4] = [
 
 #[derive(Debug, Clone, Copy)]
 pub struct Quad {
-    source: [f32; 4],
     scale: [f32; 2],
     translation: [f32; 2],
     pub layer: u32,
@@ -267,4 +243,11 @@ pub struct Quad {
 
 impl Quad {
     const MAX: usize = 100_000;
+    pub fn new(x_pos: f32, y_pos: f32, width: f32, height: f32) -> Self {
+        Quad {
+            translation: [x_pos, y_pos],
+            scale: [width, height],
+            layer: 0,
+        }
+    }
 }

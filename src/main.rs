@@ -51,7 +51,7 @@ fn main() {
     let event_loop = EventLoop::new();
 
     let window = winit::window::WindowBuilder::new()
-        .with_title("Pathfinder Metal".to_string())
+        .with_title("Editor".to_string())
         .build(&event_loop)
         .unwrap();
 

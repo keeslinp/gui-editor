@@ -1,4 +1,4 @@
-use crate::{msg::Direction, point::Point};
+use crate::{msg::Direction, point::Point, render::RenderFrame};
 use ropey::Rope;
 
 pub struct Cursor {
@@ -33,13 +33,7 @@ impl Cursor {
         }
     }
 
-    // pub fn render(&self, canvas: &mut CanvasRenderingContext2D) {
-    //     canvas.fill_rect(RectF::new(
-    //         Vector2F::new(
-    //             self.position.x as f32 * 8.4 + 10.,
-    //             self.position.y as f32 * 20.,
-    //         ),
-    //         Vector2F::new(8., 14.),
-    //     ));
-    // }
+    pub fn render(&self, render_frame: &mut RenderFrame) {
+        render_frame.queue_quad(self.position.x as f32 * 15. + 10., self.position.y as f32 * 25. + 10., 14., 30.);
+    }
 }

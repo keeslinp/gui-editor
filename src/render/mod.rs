@@ -13,6 +13,7 @@ pub struct Renderer {
     queue: Queue,
     device: Device,
     surface: Surface,
+    quad_pipeline: quad::Pipeline,
 }
 
 const RENDER_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
@@ -33,8 +34,11 @@ impl Renderer {
         });
 
         let surface = wgpu::Surface::create(window);
+
         let inconsolata: &[u8] = include_bytes!("FiraMono-Regular.ttf");
         let font = Font::from_bytes(&mut device, &inconsolata);
+
+        let quad_pipeline = quad::Pipeline::new(&mut device);
 
         let size = window.inner_size().to_physical(window.hidpi_factor());
         let swap_chain = device.create_swap_chain(
@@ -53,6 +57,7 @@ impl Renderer {
             queue,
             device,
             surface,
+            quad_pipeline,
         }
     }
 
@@ -80,6 +85,8 @@ impl Renderer {
             queue: &mut self.queue,
             device: &mut self.device,
             encoder,
+            quads: Vec::new(),
+            quad_pipeline: &mut self.quad_pipeline,
         }
     }
 }
@@ -90,6 +97,8 @@ pub struct RenderFrame<'a> {
     queue: &'a mut Queue,
     device: &'a mut Device,
     encoder: CommandEncoder,
+    quads: Vec<quad::Quad>,
+    quad_pipeline: &'a mut quad::Pipeline,
 }
 
 impl<'a> RenderFrame<'a> {
@@ -114,9 +123,16 @@ impl<'a> RenderFrame<'a> {
         self.font.queue(section);
     }
 
+    pub fn queue_quad(&mut self, x_pos: f32, y_pos: f32, width: f32, height: f32) {
+        self.quads.push(quad::Quad::new(x_pos, y_pos, width, height));
+    }
+
     pub fn submit(mut self, size: &PhysicalSize) {
         self.font
             .draw(self.device, &mut self.encoder, &self.frame.view, size);
+        use quad::{Mat4, Vec2, Vec3};
+        let transformation = Mat4::scaling_3d(Vec3::new(2. / size.width as f32, 2. / size.height as f32, 1.)).translated_2d(Vec2::new(-1., -1.));
+        self.quad_pipeline.draw(self.device, &mut self.encoder, &self.quads, &transformation, &self.frame.view);
         self.queue.submit(&[self.encoder.finish()]);
     }
 }

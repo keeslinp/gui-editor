@@ -75,7 +75,7 @@ impl Buffer {
                 });
             }
         }
-        // self.cursor.render(canvas);
+        self.cursor.render(render_frame);
     }
 
     pub fn step(&mut self, direction: Direction) {
