@@ -5,8 +5,9 @@ use crate::{
     state::State,
 };
 use crossbeam_channel::Sender;
+use winit::dpi::PhysicalSize;
 
-pub fn handle_command(state: &mut State, cmd: Cmd, msg_sender: Sender<Msg>) -> bool {
+pub fn handle_command(state: &mut State, cmd: Cmd, msg_sender: Sender<Msg>, window_size: PhysicalSize) -> bool {
     match (state.mode, cmd) {
         (_, Cmd::ChangeMode(mode)) => {
             state.mode = dbg!(mode);
@@ -36,7 +37,7 @@ pub fn handle_command(state: &mut State, cmd: Cmd, msg_sender: Sender<Msg>) -> b
         }
         (_, Cmd::MoveCursor(direction)) => {
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.step(direction);
+            buffer.step(direction, window_size);
             true
         }
     }

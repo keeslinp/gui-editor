@@ -6,12 +6,14 @@ use crate::{
 use ropey::Rope;
 use slotmap::DefaultKey;
 use wgpu_glyph::{Scale, Section};
+use winit::dpi::PhysicalSize;
 
 pub type BufferKey = DefaultKey;
 
 pub struct Buffer {
     rope: Rope,
     cursor: Cursor,
+    offset: usize,
 }
 
 impl Buffer {
@@ -19,6 +21,7 @@ impl Buffer {
         Buffer {
             rope: Rope::new(),
             cursor: Cursor::new(),
+            offset: 0,
         }
     }
 
@@ -27,6 +30,7 @@ impl Buffer {
             rope: Rope::from_reader(std::fs::File::open(file_path).expect("loading file"))
                 .expect("building rope"),
             cursor: Cursor::new(),
+            offset: 0,
         }
     }
 
@@ -63,8 +67,9 @@ impl Buffer {
         };
     }
 
-    pub fn render(&self, render_frame: &mut RenderFrame) {
-        for (line_index, line) in self.rope.lines().enumerate() {
+    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
+        let visible_lines = get_visible_lines(window_size);
+        for (line_index, line) in self.rope.lines().skip(self.offset).enumerate().take(visible_lines) {
             if let Some(text) = line.as_str() {
                 render_frame.queue_text(Section {
                     text,
@@ -75,10 +80,22 @@ impl Buffer {
                 });
             }
         }
-        self.cursor.render(render_frame);
+        self.cursor.render(render_frame, self.offset);
     }
 
-    pub fn step(&mut self, direction: Direction) {
+    pub fn step(&mut self, direction: Direction, window_size: PhysicalSize) {
         self.cursor.step(direction, &self.rope);
+        if self.cursor.row() < self.offset {
+            self.offset = self.cursor.row();
+        } else {
+            let visible_lines = get_visible_lines(window_size);
+            if self.cursor.row() >= visible_lines + self.offset {
+                self.offset = self.cursor.row() - visible_lines + 1;
+            }
+        }
     }
+}
+
+fn get_visible_lines(window_size: PhysicalSize) -> usize {
+    ((window_size.height - 10.) / 25.).floor() as usize - 1
 }

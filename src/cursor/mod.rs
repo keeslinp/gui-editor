@@ -33,12 +33,16 @@ impl Cursor {
         }
     }
 
-    pub fn render(&self, render_frame: &mut RenderFrame) {
+    pub fn render(&self, render_frame: &mut RenderFrame, vertical_offset: usize) {
         render_frame.queue_quad(
             self.position.x as f32 * 15. + 10.,
-            self.position.y as f32 * 25. + 10.,
+            (self.position.y as f32 - vertical_offset as f32) * 25. + 10.,
             14.,
             30.,
         );
+    }
+
+    pub fn row(&self) -> usize {
+        self.position.y as usize
     }
 }

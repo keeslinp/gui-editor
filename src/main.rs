@@ -25,7 +25,7 @@ use handle_command::handle_command;
 
 use msg::{Cmd, InputMsg, Msg};
 
-fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
+fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>, window_size: PhysicalSize) -> bool {
     match msg {
         Msg::Input(input_msg) => {
             if let Some(cmd) = input::build_cmd_from_input(input_msg, state.mode) {
@@ -33,13 +33,13 @@ fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>) -> bool {
             }
             false // input does not alter state
         }
-        Msg::Cmd(cmd_msg) => handle_command(state, cmd_msg, msg_sender),
+        Msg::Cmd(cmd_msg) => handle_command(state, cmd_msg, msg_sender, window_size),
     }
 }
 
 fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSize) {
     render_frame.clear();
-    state.buffers[state.current_buffer].render(render_frame);
+    state.buffers[state.current_buffer].render(render_frame, window_size);
     state.mode.render(render_frame, window_size);
     if state.mode == mode::Mode::Command {
         state.command_buffer.render(render_frame, window_size);
@@ -76,7 +76,7 @@ fn main() {
                         *control_flow = ControlFlow::Exit;
                     } else {
                         should_render =
-                            update_state(&mut state, msg, msg_sender.clone()) || should_render;
+                            update_state(&mut state, msg, msg_sender.clone(), size) || should_render;
                     }
                 }
                 // Queue a RedrawRequested event.
