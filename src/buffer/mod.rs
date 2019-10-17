@@ -1,7 +1,7 @@
 use crate::{
     cursor::Cursor,
     error::Result,
-    msg::{DeleteDirection, Direction},
+    msg::{DeleteDirection, Direction, JumpType},
     render::RenderFrame,
 };
 use ropey::Rope;
@@ -99,6 +99,10 @@ impl Buffer {
                 self.offset = self.cursor.row() - visible_lines + 1;
             }
         }
+    }
+
+    pub fn jump(&mut self, jump_type: JumpType) {
+        self.cursor.jump(jump_type, &self.rope);
     }
 }
 

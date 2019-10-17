@@ -19,7 +19,9 @@ impl CommandBuffer {
         msg_sender
             .send_event(Msg::Cmd(Cmd::ChangeMode(Mode::Normal)))
             .expect("Changing to normal mode");
-        let result = match self.buffer.as_ref() {
+        // Case insensitive cause I have always hated my life when I accidentally
+        // hold down shift while trying to save files
+        let result = match self.buffer.to_lowercase().as_str() {
             "q" => {
                 msg_sender
                     .send_event(Msg::Cmd(Cmd::Quit))

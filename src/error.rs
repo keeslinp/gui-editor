@@ -15,7 +15,7 @@ impl CommandError {
         use CommandError::*;
         match self {
             MissingArg => "Missing an argument".to_owned(),
-            UnknownCommand(cmd) => format!("Unknown command: {}", cmd),
+            UnknownCommand(cmd) => format!("Unknown command: \"{}\"", cmd),
         }
     }
 }

@@ -1,4 +1,8 @@
-use crate::{msg::Direction, point::Point, render::RenderFrame};
+use crate::{
+    msg::{Direction, JumpType},
+    point::Point,
+    render::RenderFrame,
+};
 use ropey::Rope;
 
 pub struct Cursor {
@@ -44,5 +48,17 @@ impl Cursor {
 
     pub fn row(&self) -> usize {
         self.position.y as usize
+    }
+
+    pub fn jump(&mut self, jump_type: JumpType, rope: &Rope) {
+        match jump_type {
+            JumpType::EndOfLine => {
+                let line = rope.line(self.row());
+                self.position.x = line.len_chars() as u16 - 1;
+            }
+            JumpType::StartOfLine => {
+                self.position.x = 0;
+            }
+        }
     }
 }

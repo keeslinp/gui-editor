@@ -34,12 +34,12 @@ fn update_state(
 ) -> bool {
     match msg {
         Msg::Input(input_msg) => {
-            if let Some(cmd) = input::build_cmd_from_input(input_msg, state.mode) {
+            input::build_cmd_from_input(input_msg, state.mode, |cmd| {
                 msg_sender
                     .send_event(Msg::Cmd(cmd))
-                    .expect("sending command");
-            }
-            false // input does not alter state
+                    .expect("Failed to create command from input");
+            });
+            false
         }
         Msg::Cmd(Cmd::SetError(err)) => {
             state.error = Some(err);

@@ -24,6 +24,12 @@ pub enum DeleteDirection {
 }
 
 #[derive(Debug, PartialEq)]
+pub enum JumpType {
+    EndOfLine,
+    StartOfLine,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Cmd {
     MoveCursor(Direction),
     Quit,
@@ -34,7 +40,7 @@ pub enum Cmd {
     // InsertStringAtPoint(String, Point),
     // DeleteCharRange(Point, Point),
     DeleteChar(DeleteDirection),
-    // Jump(JumpType),
+    Jump(JumpType),
     // RunCommand,
     // WriteBuffer(std::path::PathBuf),
     LoadFile(std::path::PathBuf),

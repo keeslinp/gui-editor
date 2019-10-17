@@ -33,6 +33,11 @@ pub fn handle_command(
         }
         (Mode::Command, cmd) => state.command_buffer.handle_command(cmd, msg_sender)?,
         // All other modes just work on the buffer
+        (_, Cmd::Jump(jump_type)) => {
+            let buffer = &mut state.buffers[state.current_buffer];
+            buffer.jump(jump_type);
+            true
+        }
         (_, Cmd::InsertChar(c)) => {
             let buffer = &mut state.buffers[state.current_buffer];
             buffer.insert_char(c);
