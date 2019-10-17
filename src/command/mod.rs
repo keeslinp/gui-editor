@@ -5,8 +5,8 @@ use crate::{
 };
 use crossbeam_channel::Sender;
 
-use winit::dpi::PhysicalSize;
 use wgpu_glyph::{Scale, Section};
+use winit::dpi::PhysicalSize;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct CommandBuffer {
@@ -86,7 +86,7 @@ impl CommandBuffer {
         render_frame.queue_text(Section {
             text: &format!(":{}", self.buffer),
             screen_position: (10., window_size.height as f32 - 30.),
-            color: [0.514, 0.58, 0.588, 1. ],
+            color: [0.514, 0.58, 0.588, 1.],
             scale: Scale { x: 30., y: 30. },
             ..Section::default()
         });

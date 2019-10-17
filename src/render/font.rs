@@ -1,5 +1,5 @@
 use wgpu::TextureView;
-use wgpu_glyph::{Section};
+use wgpu_glyph::Section;
 use winit::dpi::PhysicalSize;
 
 pub struct Font {

@@ -5,7 +5,7 @@ use crate::{
 };
 use ropey::Rope;
 use slotmap::DefaultKey;
-use wgpu_glyph::{Section, Scale};
+use wgpu_glyph::{Scale, Section};
 
 pub type BufferKey = DefaultKey;
 
@@ -68,9 +68,8 @@ impl Buffer {
             if let Some(text) = line.as_str() {
                 render_frame.queue_text(Section {
                     text,
-                    screen_position: (
-                        10., 10. + line_index as f32 * 25.),
-                    color: [0.514, 0.58, 0.588, 1. ],
+                    screen_position: (10., 10. + line_index as f32 * 25.),
+                    color: [0.514, 0.58, 0.588, 1.],
                     scale: Scale { x: 30., y: 30. },
                     ..Section::default()
                 });

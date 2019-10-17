@@ -1,10 +1,6 @@
-use wgpu::{CommandEncoder, Device, Surface, SwapChain, SwapChainOutput, Queue, RenderPipeline, BindGroup, Buffer};
-use wgpu_glyph::{Section};
-use winit::{
-    dpi::PhysicalSize,
-    window::Window,
-};
-
+use wgpu::{CommandEncoder, Device, Queue, Surface, SwapChain, SwapChainOutput};
+use wgpu_glyph::Section;
+use winit::{dpi::PhysicalSize, window::Window};
 
 mod font;
 mod quad;
@@ -29,7 +25,7 @@ impl Renderer {
         })
         .expect("Request adapter");
 
-        let (mut device, mut queue) = adapter.request_device(&wgpu::DeviceDescriptor {
+        let (mut device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
             extensions: wgpu::Extensions {
                 anisotropic_filtering: false,
             },
@@ -75,10 +71,9 @@ impl Renderer {
 
     pub fn start_frame<'a>(&'a mut self) -> RenderFrame<'a> {
         let frame: SwapChainOutput<'a> = self.swap_chain.get_next_texture();
-        let encoder =
-            self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                todo: 0,
-            });
+        let encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
         RenderFrame {
             frame,
             font: &mut self.font,
@@ -120,7 +115,8 @@ impl<'a> RenderFrame<'a> {
     }
 
     pub fn submit(mut self, size: &PhysicalSize) {
-        self.font.draw(self.device, &mut self.encoder, &self.frame.view, size);
+        self.font
+            .draw(self.device, &mut self.encoder, &self.frame.view, size);
         self.queue.submit(&[self.encoder.finish()]);
     }
 }

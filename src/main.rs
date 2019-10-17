@@ -1,11 +1,8 @@
 use winit::{
+    dpi::PhysicalSize,
     event::{ElementState, Event, KeyboardInput, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    window::Window,
-    dpi::PhysicalSize,
 };
-use wgpu::{CommandEncoder, Device, Surface, SwapChain, SwapChainOutput, Binding, BindGroupDescriptor, BindGroupLayoutBinding, BufferDescriptor};
-use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section, Scale};
 
 use crossbeam_channel::{unbounded, Sender};
 
@@ -50,8 +47,6 @@ fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSi
 }
 
 fn main() {
-
-
     // All this is here because of lifetime bullshit
     let event_loop = EventLoop::new();
 
