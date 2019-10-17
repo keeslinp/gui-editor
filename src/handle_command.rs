@@ -3,27 +3,33 @@ use crate::{
     mode::Mode,
     msg::{Cmd, Msg},
     state::State,
+    error::Result,
 };
-use crossbeam_channel::Sender;
-use winit::dpi::PhysicalSize;
+use winit::{
+    dpi::PhysicalSize,
+    event_loop::EventLoopProxy,
+};
 
-pub fn handle_command(state: &mut State, cmd: Cmd, msg_sender: Sender<Msg>, window_size: PhysicalSize) -> bool {
-    match (state.mode, cmd) {
+pub fn handle_command(state: &mut State, cmd: Cmd, msg_sender: EventLoopProxy<Msg>, window_size: PhysicalSize) -> Result<bool> {
+    Ok(match (state.mode, cmd) {
+        (_, Cmd::SetError(_err)) => {
+            unreachable!();
+        }
         (_, Cmd::ChangeMode(mode)) => {
-            state.mode = dbg!(mode);
+            state.mode = mode;
             true
         }
         (_, Cmd::Quit) => {
             unreachable!();
         }
         (_, Cmd::LoadFile(file)) => {
-            let buffer = Buffer::load_file(file.as_path());
+            let buffer = Buffer::load_file(file.as_path())?;
             let new_buffer_key = state.buffer_keys.insert(());
             state.buffers.insert(new_buffer_key, buffer);
             state.current_buffer = new_buffer_key;
             true
         }
-        (Mode::Command, cmd) => state.command_buffer.handle_command(cmd, msg_sender),
+        (Mode::Command, cmd) => state.command_buffer.handle_command(cmd, msg_sender)?,
         // All other modes just work on the buffer
         (_, Cmd::InsertChar(c)) => {
             let buffer = &mut state.buffers[state.current_buffer];
@@ -40,5 +46,5 @@ pub fn handle_command(state: &mut State, cmd: Cmd, msg_sender: Sender<Msg>, wind
             buffer.step(direction, window_size);
             true
         }
-    }
+    })
 }

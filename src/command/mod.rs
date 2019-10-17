@@ -2,11 +2,14 @@ use crate::{
     mode::Mode,
     msg::{Cmd, DeleteDirection, Direction, Msg},
     render::RenderFrame,
+    error::{CommandError, Result},
 };
-use crossbeam_channel::Sender;
 
 use wgpu_glyph::{Scale, Section};
-use winit::dpi::PhysicalSize;
+use winit::{
+    dpi::PhysicalSize,
+    event_loop::EventLoopProxy,
+};
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct CommandBuffer {
@@ -15,38 +18,41 @@ pub struct CommandBuffer {
 }
 
 impl CommandBuffer {
-    fn run_command(&mut self, msg_sender: Sender<Msg>) {
+    fn run_command(&mut self, msg_sender: EventLoopProxy<Msg>) -> Result<()> {
         msg_sender
-            .send(Msg::Cmd(Cmd::ChangeMode(Mode::Normal)))
+            .send_event(Msg::Cmd(Cmd::ChangeMode(Mode::Normal)))
             .expect("Changing to normal mode");
-        match self.buffer.as_ref() {
+        let result = match self.buffer.as_ref() {
             "q" => {
                 msg_sender
-                    .send(Msg::Cmd(Cmd::Quit))
+                    .send_event(Msg::Cmd(Cmd::Quit))
                     .expect("Sending quit message");
+                Ok(())
             }
             cmd if cmd.starts_with("edit") => {
                 let maybe_file = cmd.split(' ').skip(1).next();
                 if let Some(file) = maybe_file {
                     msg_sender
-                        .send(Msg::Cmd(Cmd::LoadFile(std::path::PathBuf::from(file))))
+                        .send_event(Msg::Cmd(Cmd::LoadFile(std::path::PathBuf::from(file))))
                         .expect("sending load file command");
+                    Ok(())
                 } else {
-                    eprintln!("Missing file");
+                    Err(CommandError::MissingArg)
                 }
             }
             buffer => {
-                eprintln!("Unknown command: {}", buffer);
+                Err(CommandError::UnknownCommand(buffer.to_owned()))
             }
-        }
+        };
         self.buffer.clear();
         self.position = 0;
+        result.map_err(|cmd_err| cmd_err.into())
     }
-    pub fn handle_command(&mut self, cmd: Cmd, msg_sender: Sender<Msg>) -> bool {
-        match cmd {
+    pub fn handle_command(&mut self, cmd: Cmd, msg_sender: EventLoopProxy<Msg>) -> Result<bool> {
+        Ok(match cmd {
             Cmd::InsertChar(c) => match c {
                 '\n' => {
-                    self.run_command(msg_sender);
+                    self.run_command(msg_sender)?;
                     true
                 }
                 c => {
@@ -80,7 +86,7 @@ impl CommandBuffer {
                 }
             }
             _ => false,
-        }
+        })
     }
     pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
         render_frame.queue_text(Section {

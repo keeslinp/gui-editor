@@ -1,10 +1,10 @@
 use winit::{
     dpi::PhysicalSize,
     event::{ElementState, Event, KeyboardInput, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::{ControlFlow, EventLoop, EventLoopProxy},
 };
 
-use crossbeam_channel::{unbounded, Sender};
+use wgpu_glyph::{Scale, Section};
 
 mod buffer;
 mod command;
@@ -16,6 +16,7 @@ mod msg;
 mod point;
 mod render;
 mod state;
+mod error;
 
 use render::{RenderFrame, Renderer};
 
@@ -25,15 +26,30 @@ use handle_command::handle_command;
 
 use msg::{Cmd, InputMsg, Msg};
 
-fn update_state(state: &mut State, msg: Msg, msg_sender: Sender<Msg>, window_size: PhysicalSize) -> bool {
+fn update_state(state: &mut State, msg: Msg, msg_sender: EventLoopProxy<Msg>, window_size: PhysicalSize) -> bool {
     match msg {
         Msg::Input(input_msg) => {
             if let Some(cmd) = input::build_cmd_from_input(input_msg, state.mode) {
-                msg_sender.send(Msg::Cmd(cmd)).expect("sending command");
+                msg_sender.send_event(Msg::Cmd(cmd)).expect("sending command");
             }
             false // input does not alter state
+        },
+        Msg::Cmd(Cmd::SetError(err)) => {
+            state.error = Some(err);
+            true
+        },
+        Msg::Cmd(cmd_msg) => {
+            match handle_command(state, cmd_msg, msg_sender.clone(), window_size) {
+                Ok(should_render) => {
+                    state.error = None;
+                    should_render
+                }
+                Err(err) => {
+                    msg_sender.send_event(Msg::Cmd(Cmd::SetError(err))).expect("setting error");
+                    true
+                }
+            }
         }
-        Msg::Cmd(cmd_msg) => handle_command(state, cmd_msg, msg_sender, window_size),
     }
 }
 
@@ -44,11 +60,19 @@ fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSi
     if state.mode == mode::Mode::Command {
         state.command_buffer.render(render_frame, window_size);
     }
+    if let Some(ref error) = state.error {
+        render_frame.queue_text(Section {
+            text: &error.as_string(),
+            screen_position: (10., window_size.height as f32 - 30.),
+            color: [1., 0., 0., 1.],
+            scale: Scale { x: 30., y: 30. },
+            ..Section::default()
+        });
+    }
 }
 
 fn main() {
-    // All this is here because of lifetime bullshit
-    let event_loop = EventLoop::new();
+    let event_loop: EventLoop<Msg> = EventLoop::with_user_event();
 
     let window = winit::window::WindowBuilder::new()
         .with_title("Editor".to_string())
@@ -62,7 +86,9 @@ fn main() {
     // END OF SETUP
     let mut state = State::new();
 
-    let (msg_sender, msg_receiver) = unbounded();
+    let msg_sender = event_loop.create_proxy();
+
+    let mut dirty = false;
 
     window.request_redraw();
     // TODO (perf): Do some performance improvements on this main loop
@@ -70,18 +96,15 @@ fn main() {
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::EventsCleared => {
-                let mut should_render = false;
-                for msg in msg_receiver.try_iter() {
-                    if msg == Msg::Cmd(Cmd::Quit) {
-                        *control_flow = ControlFlow::Exit;
-                    } else {
-                        should_render =
-                            update_state(&mut state, msg, msg_sender.clone(), size) || should_render;
-                    }
-                }
-                // Queue a RedrawRequested event.
-                if should_render {
+                if dirty {
                     window.request_redraw();
+                }
+            }
+            Event::UserEvent(msg) => {
+                if msg == Msg::Cmd(Cmd::Quit) {
+                    *control_flow = ControlFlow::Exit;
+                } else {
+                    dirty = update_state(&mut state, msg, msg_sender.clone(), size) || dirty;
                 }
             }
             winit::event::Event::WindowEvent {
@@ -90,16 +113,6 @@ fn main() {
             } => {
                 size = new_size.to_physical(window.hidpi_factor());
                 renderer.update_size(size);
-                // swap_chain = device.create_swap_chain(
-                //     &surface,
-                //     &wgpu::SwapChainDescriptor {
-                //         usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                //         format: render_format,
-                //         width: size.width.round() as u32,
-                //         height: size.height.round() as u32,
-                //         present_mode: wgpu::PresentMode::Vsync,
-                //     },
-                // );
                 window.request_redraw();
             }
             Event::WindowEvent {
@@ -115,7 +128,7 @@ fn main() {
                 ..
             } => {
                 msg_sender
-                    .send(Msg::Input(InputMsg::CharPressed(c)))
+                    .send_event(Msg::Input(InputMsg::CharPressed(c)))
                     .expect("sending char event");
             }
             Event::WindowEvent {
@@ -132,7 +145,7 @@ fn main() {
                 ..
             } => {
                 msg_sender
-                    .send(Msg::Input(InputMsg::KeyPressed(keycode)))
+                    .send_event(Msg::Input(InputMsg::KeyPressed(keycode)))
                     .expect("sending key event");
             }
             Event::WindowEvent {

@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use crate::mode::Mode;
+use crate::{
+    mode::Mode,
+    error::Error,
+};
 use winit::event::VirtualKeyCode;
 
 #[derive(PartialEq, Debug)]
@@ -29,6 +32,7 @@ pub enum Cmd {
     Quit,
     ChangeMode(Mode),
     InsertChar(char),
+    SetError(Error),
     // InsertCharAtPoint(char, Point),
     // InsertStringAtPoint(String, Point),
     // DeleteCharRange(Point, Point),

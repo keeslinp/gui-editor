@@ -2,6 +2,7 @@ use crate::{
     cursor::Cursor,
     msg::{DeleteDirection, Direction},
     render::RenderFrame,
+    error::Result,
 };
 use ropey::Rope;
 use slotmap::DefaultKey;
@@ -25,13 +26,12 @@ impl Buffer {
         }
     }
 
-    pub fn load_file(file_path: &std::path::Path) -> Buffer {
-        Buffer {
-            rope: Rope::from_reader(std::fs::File::open(file_path).expect("loading file"))
-                .expect("building rope"),
+    pub fn load_file(file_path: &std::path::Path) -> Result<Buffer> {
+        Ok(Buffer {
+            rope: Rope::from_reader(std::fs::File::open(file_path)?)?,
             cursor: Cursor::new(),
             offset: 0,
-        }
+        })
     }
 
     pub fn insert_char(&mut self, c: char) {
