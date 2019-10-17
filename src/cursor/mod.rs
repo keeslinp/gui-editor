@@ -34,6 +34,11 @@ impl Cursor {
     }
 
     pub fn render(&self, render_frame: &mut RenderFrame) {
-        render_frame.queue_quad(self.position.x as f32 * 15. + 10., self.position.y as f32 * 25. + 10., 14., 30.);
+        render_frame.queue_quad(
+            self.position.x as f32 * 15. + 10.,
+            self.position.y as f32 * 25. + 10.,
+            14.,
+            30.,
+        );
     }
 }

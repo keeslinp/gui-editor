@@ -1,8 +1,5 @@
 use std::mem;
-pub use vek::{
-    mat::repr_c::column_major::*,
-    vec::repr_c::*,
-};
+pub use vek::{mat::repr_c::column_major::*, vec::repr_c::*};
 
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
@@ -16,13 +13,11 @@ pub struct Pipeline {
 impl Pipeline {
     pub fn new(device: &mut wgpu::Device) -> Pipeline {
         let constant_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            bindings: &[
-                wgpu::BindGroupLayoutBinding {
-                    binding: 0,
-                    visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::UniformBuffer { dynamic: false },
-                },
-            ],
+            bindings: &[wgpu::BindGroupLayoutBinding {
+                binding: 0,
+                visibility: wgpu::ShaderStage::VERTEX,
+                ty: wgpu::BindingType::UniformBuffer { dynamic: false },
+            }],
         });
 
         let matrix: [f32; 16] = Mat4::identity().into_col_array();
@@ -33,15 +28,13 @@ impl Pipeline {
 
         let constant_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &constant_layout,
-            bindings: &[
-                wgpu::Binding {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer {
-                        buffer: &transform_buffer,
-                        range: 0..64,
-                    },
+            bindings: &[wgpu::Binding {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer {
+                    buffer: &transform_buffer,
+                    range: 0..64,
                 },
-            ],
+            }],
         });
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
