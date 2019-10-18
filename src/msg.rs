@@ -45,7 +45,7 @@ pub enum Cmd {
     DeleteChar(DeleteDirection),
     Jump(JumpType),
     // RunCommand,
-    // WriteBuffer(std::path::PathBuf),
+    WriteBuffer(Option<std::path::PathBuf>),
     LoadFile(std::path::PathBuf),
     // BufferLoaded,
     // BufferModified,

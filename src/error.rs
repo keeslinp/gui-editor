@@ -9,6 +9,7 @@ pub enum Error {
     IOError(String),
     Command(CommandError),
     WalkDir(String),
+    NeedFilePath,
 }
 
 impl CommandError {
@@ -28,6 +29,7 @@ impl Error {
             IOError(err) => format!("IOError: {}", err),
             Command(err) => err.as_string(),
             WalkDir(err) => format!("WalkDir: {}", err),
+            NeedFilePath => "Need a file path to save a new buffer".to_owned(),
         }
     }
 }

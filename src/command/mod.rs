@@ -23,15 +23,34 @@ impl CommandBuffer {
             .expect("Changing to normal mode");
         // Case insensitive cause I have always hated my life when I accidentally
         // hold down shift while trying to save files
-        let result = match self.buffer.as_str().to_lowercase().as_str() {
-            "q" => {
+        let command = self.buffer.as_str().to_lowercase();
+        let mut words = command.split_whitespace();
+        let result = match words.next() {
+            Some("q") => {
                 msg_sender
                     .send_event(Msg::Cmd(Cmd::Quit))
                     .expect("Sending quit message");
                 Ok(())
             }
-            cmd if cmd.starts_with("edit") => {
-                let maybe_file = cmd.split(' ').nth(1);
+            Some("w") => {
+                let maybe_path = {
+                    let rest = words.fold(String::new(), |mut acc, word| {
+                        acc.push_str(&word);
+                        acc
+                    });
+                    if rest.len() == 0 {
+                        None
+                    } else {
+                        Some(std::path::PathBuf::from(rest))
+                    }
+                };
+                msg_sender
+                    .send_event(Msg::Cmd(Cmd::WriteBuffer(maybe_path)))
+                    .expect("Sending write message");
+                Ok(())
+            }
+            Some("edit") => {
+                let maybe_file = words.next();
                 if let Some(file) = maybe_file {
                     msg_sender
                         .send_event(Msg::Cmd(Cmd::LoadFile(std::path::PathBuf::from(file))))
@@ -41,7 +60,8 @@ impl CommandBuffer {
                     Err(CommandError::MissingArg)
                 }
             }
-            buffer => Err(CommandError::UnknownCommand(buffer.to_owned())),
+            Some(buffer) => Err(CommandError::UnknownCommand(buffer.to_owned())),
+            None => Ok(()),
         };
         self.buffer.clear();
         result.map_err(|cmd_err| cmd_err.into())

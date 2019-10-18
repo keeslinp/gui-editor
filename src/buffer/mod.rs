@@ -1,6 +1,6 @@
 use crate::{
     cursor::Cursor,
-    error::Result,
+    error::{Error, Result},
     msg::{DeleteDirection, Direction, JumpType},
     render::RenderFrame,
 };
@@ -15,6 +15,7 @@ pub struct Buffer {
     rope: Rope,
     cursor: Cursor,
     offset: usize,
+    file: Option<std::path::PathBuf>,
 }
 
 fn log10(num: usize) -> usize {
@@ -35,15 +36,30 @@ impl Buffer {
             rope: Rope::new(),
             cursor: Cursor::new(),
             offset: 0,
+            file: None,
         }
     }
 
-    pub fn load_file(file_path: &std::path::Path) -> Result<Buffer> {
+    pub fn load_file(file_path: std::path::PathBuf) -> Result<Buffer> {
         Ok(Buffer {
-            rope: Rope::from_reader(std::fs::File::open(file_path)?)?,
+            rope: Rope::from_reader(std::fs::File::open(file_path.as_path())?)?,
             cursor: Cursor::new(),
             offset: 0,
+            file: Some(file_path),
         })
+    }
+
+    pub fn write(&mut self, file_path: Option<std::path::PathBuf>) -> Result<()> {
+        if let Some(path) = file_path.or(self.file.take()) {
+            self.rope
+                .write_to(std::io::BufWriter::new(std::fs::File::create(
+                    path.as_path(),
+                )?))?;
+            self.file = Some(path);
+            Ok(())
+        } else {
+            Err(Error::NeedFilePath)
+        }
     }
 
     pub fn insert_char(&mut self, c: char, should_step: bool, window_size: PhysicalSize) {

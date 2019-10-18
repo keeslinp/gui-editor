@@ -30,12 +30,18 @@ pub fn handle_command(
             unreachable!();
         }
         (_, Cmd::LoadFile(file)) => {
-            let buffer = Buffer::load_file(file.as_path())?;
+            let buffer = Buffer::load_file(file)?;
             let new_buffer_key = state.buffer_keys.insert(());
             state.buffers.insert(new_buffer_key, buffer);
             state.current_buffer = new_buffer_key;
             true
         }
+        (_, Cmd::WriteBuffer(maybe_path)) => {
+            let buffer = &mut state.buffers[state.current_buffer];
+            buffer.write(maybe_path)?;
+            true
+        }
+
         (Mode::Skim, cmd) => state.skim_buffer.handle_command(cmd, msg_sender)?,
         (Mode::Command, cmd) => state.command_buffer.handle_command(cmd, msg_sender)?,
         (_, Cmd::Submit) => false, // None of the other modes care
