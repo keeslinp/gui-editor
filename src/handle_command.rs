@@ -35,17 +35,17 @@ pub fn handle_command(
         // All other modes just work on the buffer
         (_, Cmd::Jump(jump_type)) => {
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.jump(jump_type);
+            buffer.jump(jump_type, window_size);
             true
         }
-        (_, Cmd::InsertChar(c)) => {
+        (_, Cmd::InsertChar(c, should_step)) => {
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.insert_char(c);
+            buffer.insert_char(c, should_step, window_size);
             true
         }
         (_, Cmd::DeleteChar(direction)) => {
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.delete_char(direction);
+            buffer.delete_char(direction, window_size);
             true
         }
         (_, Cmd::MoveCursor(direction)) => {

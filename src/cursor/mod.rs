@@ -37,9 +37,11 @@ impl Cursor {
         }
     }
 
-    pub fn render(&self, render_frame: &mut RenderFrame, vertical_offset: usize) {
+    pub fn render(&self, render_frame: &mut RenderFrame, horizontal_offset: usize, vertical_offset: usize) {
         render_frame.queue_quad(
-            f32::from(self.position.x) * 15. + 10.,
+            // horizontal is added because it is to make room for line numbers
+            (f32::from(self.position.x) + horizontal_offset as f32) * 15. + 30.,
+            // vertical is subbed because it adjusts for scrolling
             (f32::from(self.position.y) - vertical_offset as f32) * 25. + 10.,
             14.,
             30.,
@@ -49,16 +51,8 @@ impl Cursor {
     pub fn row(&self) -> usize {
         self.position.y as usize
     }
-
     pub fn jump(&mut self, jump_type: JumpType, rope: &Rope) {
-        match jump_type {
-            JumpType::EndOfLine => {
-                let line = rope.line(self.row());
-                self.position.x = line.len_chars() as u16 - 1;
-            }
-            JumpType::StartOfLine => {
-                self.position.x = 0;
-            }
-        }
+        self.position.jump(jump_type, rope);
+        self.saved_x = self.position.x;
     }
 }

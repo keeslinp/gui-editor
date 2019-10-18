@@ -27,6 +27,8 @@ pub enum DeleteDirection {
 pub enum JumpType {
     EndOfLine,
     StartOfLine,
+    StartOfFile,
+    EndOfFile,
 }
 
 #[derive(Debug, PartialEq)]
@@ -34,7 +36,7 @@ pub enum Cmd {
     MoveCursor(Direction),
     Quit,
     ChangeMode(Mode),
-    InsertChar(char),
+    InsertChar(char, bool),
     SetError(Error),
     // InsertCharAtPoint(char, Point),
     // InsertStringAtPoint(String, Point),

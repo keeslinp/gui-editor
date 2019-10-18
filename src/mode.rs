@@ -8,6 +8,7 @@ pub enum Mode {
     Normal,
     Insert,
     Command,
+    Jump,
     // Select,
 }
 
@@ -17,6 +18,7 @@ impl Mode {
             Mode::Normal => "Normal",
             Mode::Insert => "Insert",
             Mode::Command => "Command",
+            Mode::Jump => "Jump",
         }
     }
     pub fn render(self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {

@@ -29,7 +29,7 @@ impl CommandBuffer {
                 Ok(())
             }
             cmd if cmd.starts_with("edit") => {
-                let maybe_file = cmd.split(' ').nth(2);
+                let maybe_file = cmd.split(' ').nth(1);
                 if let Some(file) = maybe_file {
                     msg_sender
                         .send_event(Msg::Cmd(Cmd::LoadFile(std::path::PathBuf::from(file))))
@@ -47,14 +47,16 @@ impl CommandBuffer {
     }
     pub fn handle_command(&mut self, cmd: Cmd, msg_sender: EventLoopProxy<Msg>) -> Result<bool> {
         Ok(match cmd {
-            Cmd::InsertChar(c) => match c {
+            Cmd::InsertChar(c, should_step) => match c {
                 '\n' => {
                     self.run_command(msg_sender)?;
                     true
                 }
                 c => {
                     self.buffer.insert(self.position, c);
-                    self.position += 1;
+                    if should_step {
+                        self.position += 1;
+                    }
                     true
                 }
             },

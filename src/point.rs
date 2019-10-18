@@ -1,4 +1,4 @@
-use crate::msg::Direction;
+use crate::msg::{Direction, JumpType};
 use ropey::Rope;
 
 #[derive(Debug, PartialEq, Default)]
@@ -18,7 +18,11 @@ impl Point {
     pub fn prevent_runoff(&mut self, rope: &Rope) {
         let line_len = rope.line(self.y as usize).len_chars() as u16;
         if line_len <= self.x {
-            self.x = line_len - 1;
+            if line_len == 0 {
+                self.x = 0;
+            } else {
+                self.x = line_len - 1;
+            }
         }
     }
     pub fn step(&mut self, direction: Direction, rope: &Rope) {
@@ -44,6 +48,25 @@ impl Point {
                 if self.y > 0 {
                     self.y -= 1;
                 }
+            }
+        }
+    }
+    pub fn jump(&mut self, jump_type: JumpType, rope: &Rope) {
+        match jump_type {
+            JumpType::EndOfLine => {
+                let line = rope.line(self.y as usize);
+                self.x = line.len_chars() as u16;
+            }
+            JumpType::StartOfLine => {
+                self.x = 0;
+            }
+            JumpType::StartOfFile => {
+                self.y = 0;
+                self.x = 0;
+            }
+            JumpType::EndOfFile => {
+                self.y = rope.len_lines() as u16 - 1;
+                self.x = 0;
             }
         }
     }

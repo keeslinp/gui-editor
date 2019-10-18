@@ -21,25 +21,40 @@ pub fn build_cmd_from_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn
 
         // Insert
         (Mode::Insert, InputMsg::CharPressed(c)) if !c.is_control() => {
-            cmd_sender(Cmd::InsertChar(c))
+            cmd_sender(Cmd::InsertChar(c, true))
         }
         (Mode::Insert, InputMsg::KeyPressed(key)) => match key {
             VirtualKeyCode::Back => cmd_sender(Cmd::DeleteChar(DeleteDirection::Before)),
-            VirtualKeyCode::Return => cmd_sender(Cmd::InsertChar('\n')),
+            VirtualKeyCode::Return => cmd_sender(Cmd::InsertChar('\n', true)),
             VirtualKeyCode::Escape => cmd_sender(Cmd::ChangeMode(Mode::Normal)),
             _ => {}
         },
 
         // Command
         (Mode::Command, InputMsg::CharPressed(c)) if !c.is_control() => {
-            cmd_sender(Cmd::InsertChar(c))
+            cmd_sender(Cmd::InsertChar(c, true))
         }
         (Mode::Command, InputMsg::KeyPressed(key)) => match key {
             VirtualKeyCode::Back => cmd_sender(Cmd::DeleteChar(DeleteDirection::Before)),
-            VirtualKeyCode::Return => cmd_sender(Cmd::InsertChar('\n')),
+            VirtualKeyCode::Return => cmd_sender(Cmd::InsertChar('\n', true)),
             VirtualKeyCode::Escape => cmd_sender(Cmd::ChangeMode(Mode::Normal)),
             _ => {}
         },
+
+        (Mode::Jump, InputMsg::KeyPressed(key)) => match key {
+            VirtualKeyCode::Escape => cmd_sender(Cmd::ChangeMode(Mode::Normal)),
+            _ => {}
+        }
+        (Mode::Jump, InputMsg::CharPressed(c)) => {
+            match c {
+                'l' => cmd_sender(Cmd::Jump(JumpType::EndOfLine)),
+                'h' => cmd_sender(Cmd::Jump(JumpType::StartOfLine)),
+                'k' => cmd_sender(Cmd::Jump(JumpType::StartOfFile)),
+                'j' => cmd_sender(Cmd::Jump(JumpType::EndOfFile)),
+                _ => {}
+            }
+            cmd_sender(Cmd::ChangeMode(Mode::Normal));
+        }
 
         // Normal
         (Mode::Normal, InputMsg::CharPressed(c)) => match c {
@@ -60,14 +75,21 @@ pub fn build_cmd_from_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn
             }
             'o' => {
                 cmd_sender(Cmd::Jump(JumpType::EndOfLine));
-                cmd_sender(Cmd::InsertChar('\n'));
+                cmd_sender(Cmd::InsertChar('\n', false));
+                cmd_sender(Cmd::MoveCursor(Direction::Down));
+                // Reset the saved x value
+                cmd_sender(Cmd::MoveCursor(Direction::Left));
+                cmd_sender(Cmd::MoveCursor(Direction::Right));
+
                 cmd_sender(Cmd::ChangeMode(Mode::Insert));
             }
             'O' => {
                 cmd_sender(Cmd::Jump(JumpType::StartOfLine));
-                cmd_sender(Cmd::InsertChar('\n'));
+                cmd_sender(Cmd::InsertChar('\n', false));
                 cmd_sender(Cmd::ChangeMode(Mode::Insert));
-                cmd_sender(Cmd::MoveCursor(Direction::Left));
+            }
+            'g' => {
+                cmd_sender(Cmd::ChangeMode(Mode::Jump));
             }
             _ => {}
         },
