@@ -17,3 +17,4 @@ wgpu_glyph = { version = "0.4.0", git = "https://github.com/hecrj/wgpu_glyph.git
 vek = "0.9.9"
 fuzzy-matcher = "0.2.1"
 walkdir = "2.2.9"
+itertools = "0.8.0"

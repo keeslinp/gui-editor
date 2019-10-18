@@ -19,6 +19,10 @@ pub fn handle_command(
         }
         (_, Cmd::ChangeMode(mode)) => {
             state.mode = mode;
+            match mode {
+                Mode::Skim => state.skim_buffer.refresh_files(),
+                _ => {} // the rest don't need setup
+            }
             true
         }
         (_, Cmd::Quit) => {
