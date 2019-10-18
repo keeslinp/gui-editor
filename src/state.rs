@@ -3,6 +3,7 @@ use crate::{
     command::CommandBuffer,
     error::Error,
     mode::Mode,
+    skim_buffer::SkimBuffer,
 };
 use slotmap::{SecondaryMap, SlotMap};
 
@@ -13,6 +14,7 @@ pub struct State {
     pub mode: Mode,
     pub command_buffer: CommandBuffer,
     pub error: Option<Error>,
+    pub skim_buffer: SkimBuffer,
 }
 
 impl State {
@@ -28,6 +30,7 @@ impl State {
             mode: Mode::Normal,
             command_buffer: CommandBuffer::default(),
             error: None,
+            skim_buffer: SkimBuffer::default(),
         }
     }
 }

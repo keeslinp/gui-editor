@@ -15,3 +15,5 @@ wgpu = { version = "0.3", git = "https://github.com/gfx-rs/wgpu-rs", rev = "cb25
 glyph_brush = "0.6.0"
 wgpu_glyph = { version = "0.4.0", git = "https://github.com/hecrj/wgpu_glyph.git" }
 vek = "0.9.9"
+fuzzy-matcher = "0.2.1"
+walkdir = "2.2.9"

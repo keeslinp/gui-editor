@@ -5,7 +5,7 @@ use crate::{
     msg::{Cmd, DeleteDirection, Direction, InputMsg, JumpType},
 };
 
-pub fn build_cmd_from_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -> ()) {
+pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -> ()) {
     match (mode, input_msg) {
         // Shared
         (_, InputMsg::KeyPressed(VirtualKeyCode::Left)) => {
@@ -44,7 +44,7 @@ pub fn build_cmd_from_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn
         (Mode::Jump, InputMsg::KeyPressed(key)) => match key {
             VirtualKeyCode::Escape => cmd_sender(Cmd::ChangeMode(Mode::Normal)),
             _ => {}
-        }
+        },
         (Mode::Jump, InputMsg::CharPressed(c)) => {
             match c {
                 'l' => cmd_sender(Cmd::Jump(JumpType::EndOfLine)),
@@ -56,8 +56,19 @@ pub fn build_cmd_from_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn
             cmd_sender(Cmd::ChangeMode(Mode::Normal));
         }
 
+        (Mode::Skim, InputMsg::CharPressed(c)) if !c.is_control() => {
+            cmd_sender(Cmd::InsertChar(c, true))
+        }
+        (Mode::Skim, InputMsg::KeyPressed(key)) => match key {
+            VirtualKeyCode::Back => cmd_sender(Cmd::DeleteChar(DeleteDirection::Before)),
+            VirtualKeyCode::Return => cmd_sender(Cmd::InsertChar('\n', true)),
+            VirtualKeyCode::Escape => cmd_sender(Cmd::ChangeMode(Mode::Normal)),
+            _ => {}
+        },
+
         // Normal
         (Mode::Normal, InputMsg::CharPressed(c)) => match c {
+            '\u{10}' => cmd_sender(Cmd::ChangeMode(Mode::Skim)),
             'h' => cmd_sender(Cmd::MoveCursor(Direction::Left)),
             'l' => cmd_sender(Cmd::MoveCursor(Direction::Right)),
             'k' => cmd_sender(Cmd::MoveCursor(Direction::Up)),

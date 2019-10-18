@@ -16,7 +16,9 @@ mod mode;
 mod msg;
 mod point;
 mod render;
+mod skim_buffer;
 mod state;
+mod text_buffer;
 
 use render::{RenderFrame, Renderer};
 
@@ -34,7 +36,7 @@ fn update_state(
 ) -> bool {
     match msg {
         Msg::Input(input_msg) => {
-            input::build_cmd_from_input(input_msg, state.mode, |cmd| {
+            input::process_input(input_msg, state.mode, |cmd| {
                 msg_sender
                     .send_event(Msg::Cmd(cmd))
                     .expect("Failed to create command from input");
@@ -64,7 +66,13 @@ fn update_state(
 
 fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSize) {
     render_frame.clear();
-    state.buffers[state.current_buffer].render(render_frame, window_size);
+    use mode::Mode::*;
+    match state.mode {
+        Normal | Insert | Command | Jump => {
+            state.buffers[state.current_buffer].render(render_frame, window_size)
+        }
+        Skim => state.skim_buffer.render(render_frame, window_size),
+    }
     state.mode.render(render_frame, window_size);
     if state.mode == mode::Mode::Command {
         state.command_buffer.render(render_frame, window_size);

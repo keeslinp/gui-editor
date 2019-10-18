@@ -1,17 +1,16 @@
 use crate::{
     error::{CommandError, Result},
     mode::Mode,
-    msg::{Cmd, DeleteDirection, Direction, Msg},
+    msg::{Cmd, Msg},
     render::RenderFrame,
+    text_buffer::TextBuffer,
 };
 
-use wgpu_glyph::{Scale, Section};
 use winit::{dpi::PhysicalSize, event_loop::EventLoopProxy};
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct CommandBuffer {
-    buffer: String,
-    position: usize,
+    buffer: TextBuffer,
 }
 
 impl CommandBuffer {
@@ -21,7 +20,7 @@ impl CommandBuffer {
             .expect("Changing to normal mode");
         // Case insensitive cause I have always hated my life when I accidentally
         // hold down shift while trying to save files
-        let result = match self.buffer.to_lowercase().as_str() {
+        let result = match self.buffer.as_str().to_lowercase().as_str() {
             "q" => {
                 msg_sender
                     .send_event(Msg::Cmd(Cmd::Quit))
@@ -42,58 +41,18 @@ impl CommandBuffer {
             buffer => Err(CommandError::UnknownCommand(buffer.to_owned())),
         };
         self.buffer.clear();
-        self.position = 0;
         result.map_err(|cmd_err| cmd_err.into())
     }
     pub fn handle_command(&mut self, cmd: Cmd, msg_sender: EventLoopProxy<Msg>) -> Result<bool> {
         Ok(match cmd {
-            Cmd::InsertChar(c, should_step) => match c {
-                '\n' => {
-                    self.run_command(msg_sender)?;
-                    true
-                }
-                c => {
-                    self.buffer.insert(self.position, c);
-                    if should_step {
-                        self.position += 1;
-                    }
-                    true
-                }
-            },
-            Cmd::MoveCursor(Direction::Left) => {
-                if self.position > 0 {
-                    self.position -= 1;
-                }
+            Cmd::InsertChar('\n', _) => {
+                self.run_command(msg_sender)?;
                 true
             }
-            Cmd::MoveCursor(Direction::Right) => {
-                if self.position < self.buffer.len() {
-                    self.position += 1;
-                }
-                true
-            }
-            Cmd::MoveCursor(Direction::Up) | Cmd::MoveCursor(Direction::Down) => {
-                false // Con't care
-            }
-            Cmd::DeleteChar(DeleteDirection::Before) => {
-                if self.position > 0 {
-                    self.buffer.remove(self.position - 1);
-                    self.position -= 1;
-                    true
-                } else {
-                    false
-                }
-            }
-            _ => false,
+            cmd => self.buffer.handle_command(cmd)?,
         })
     }
     pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
-        render_frame.queue_text(Section {
-            text: &format!(":{}", self.buffer),
-            screen_position: (10., window_size.height as f32 - 30.),
-            color: [0.514, 0.58, 0.588, 1.],
-            scale: Scale { x: 30., y: 30. },
-            ..Section::default()
-        });
+        self.buffer.render(render_frame, window_size);
     }
 }

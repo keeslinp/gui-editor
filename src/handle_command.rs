@@ -31,6 +31,7 @@ pub fn handle_command(
             state.current_buffer = new_buffer_key;
             true
         }
+        (Mode::Skim, cmd) => state.skim_buffer.handle_command(cmd, msg_sender)?,
         (Mode::Command, cmd) => state.command_buffer.handle_command(cmd, msg_sender)?,
         // All other modes just work on the buffer
         (_, Cmd::Jump(jump_type)) => {

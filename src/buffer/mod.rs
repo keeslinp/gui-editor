@@ -103,7 +103,7 @@ impl Buffer {
         let line_len = self.rope.len_lines();
         let line_offset = log10(line_len);
         let line_offset_px = line_offset as f32 * 15.;
-        use wgpu_glyph::{Layout, HorizontalAlign};
+        use wgpu_glyph::{HorizontalAlign, Layout};
         for visible_line in 0..visible_lines {
             let real_line = self.offset + visible_line;
             let line_in_buffer: bool = real_line < line_len;
@@ -150,6 +150,6 @@ impl Buffer {
     }
 }
 
-fn get_visible_lines(window_size: PhysicalSize) -> usize {
+pub fn get_visible_lines(window_size: PhysicalSize) -> usize {
     ((window_size.height - 10.) / 25.).floor() as usize - 1
 }

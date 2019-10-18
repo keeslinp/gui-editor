@@ -9,6 +9,7 @@ pub enum Mode {
     Insert,
     Command,
     Jump,
+    Skim,
     // Select,
 }
 
@@ -19,6 +20,7 @@ impl Mode {
             Mode::Insert => "Insert",
             Mode::Command => "Command",
             Mode::Jump => "Jump",
+            Mode::Skim => "Skim",
         }
     }
     pub fn render(self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {

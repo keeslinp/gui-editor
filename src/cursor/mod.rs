@@ -37,7 +37,12 @@ impl Cursor {
         }
     }
 
-    pub fn render(&self, render_frame: &mut RenderFrame, horizontal_offset: usize, vertical_offset: usize) {
+    pub fn render(
+        &self,
+        render_frame: &mut RenderFrame,
+        horizontal_offset: usize,
+        vertical_offset: usize,
+    ) {
         render_frame.queue_quad(
             // horizontal is added because it is to make room for line numbers
             (f32::from(self.position.x) + horizontal_offset as f32) * 15. + 30.,

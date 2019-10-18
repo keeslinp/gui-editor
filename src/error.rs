@@ -8,6 +8,7 @@ pub enum CommandError {
 pub enum Error {
     IOError(String),
     Command(CommandError),
+    WalkDir(String),
 }
 
 impl CommandError {
@@ -26,7 +27,14 @@ impl Error {
         match self {
             IOError(err) => format!("IOError: {}", err),
             Command(err) => err.as_string(),
+            WalkDir(err) => format!("WalkDir: {}", err),
         }
+    }
+}
+
+impl From<walkdir::Error> for Error {
+    fn from(err: walkdir::Error) -> Error {
+        Error::WalkDir(err.to_string())
     }
 }
 
