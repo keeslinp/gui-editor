@@ -23,8 +23,8 @@ fn log10(num: usize) -> usize {
         n if n < 100 => 2,
         n if n < 1000 => 3,
         n if n < 10000 => 4,
-        n if n < 100000 => 5,
-        n if n < 1000000 => 6,
+        n if n < 100_000 => 5,
+        n if n < 1_000_000 => 6,
         _ => 7, // Cross that bridge when we get there
     }
 }

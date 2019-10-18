@@ -21,6 +21,7 @@ pub fn handle_command(
             state.mode = mode;
             match mode {
                 Mode::Skim => state.skim_buffer.refresh_files(),
+                Mode::Command => state.command_buffer.clear(),
                 _ => {} // the rest don't need setup
             }
             true
@@ -37,6 +38,7 @@ pub fn handle_command(
         }
         (Mode::Skim, cmd) => state.skim_buffer.handle_command(cmd, msg_sender)?,
         (Mode::Command, cmd) => state.command_buffer.handle_command(cmd, msg_sender)?,
+        (_, Cmd::Submit) => false, // None of the other modes care
         // All other modes just work on the buffer
         (_, Cmd::Jump(jump_type)) => {
             let buffer = &mut state.buffers[state.current_buffer];

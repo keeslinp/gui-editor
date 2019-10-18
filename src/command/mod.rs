@@ -14,6 +14,9 @@ pub struct CommandBuffer {
 }
 
 impl CommandBuffer {
+    pub fn clear(&mut self) {
+        self.buffer.clear();
+    }
     fn run_command(&mut self, msg_sender: EventLoopProxy<Msg>) -> Result<()> {
         msg_sender
             .send_event(Msg::Cmd(Cmd::ChangeMode(Mode::Normal)))
@@ -45,7 +48,7 @@ impl CommandBuffer {
     }
     pub fn handle_command(&mut self, cmd: Cmd, msg_sender: EventLoopProxy<Msg>) -> Result<bool> {
         Ok(match cmd {
-            Cmd::InsertChar('\n', _) => {
+            Cmd::Submit => {
                 self.run_command(msg_sender)?;
                 true
             }

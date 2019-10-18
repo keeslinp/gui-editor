@@ -38,6 +38,7 @@ pub enum Cmd {
     ChangeMode(Mode),
     InsertChar(char, bool),
     SetError(Error),
+    Submit,
     // InsertCharAtPoint(char, Point),
     // InsertStringAtPoint(String, Point),
     // DeleteCharRange(Point, Point),

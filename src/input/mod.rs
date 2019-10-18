@@ -5,6 +5,10 @@ use crate::{
     msg::{Cmd, DeleteDirection, Direction, InputMsg, JumpType},
 };
 
+fn is_valid_key(c: char) -> bool {
+    c != '\r' && (c.is_alphanumeric() || c.is_whitespace() || c.is_ascii_punctuation())
+}
+
 pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -> ()) {
     match (mode, input_msg) {
         // Shared
@@ -20,7 +24,7 @@ pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -
         (_, InputMsg::KeyPressed(VirtualKeyCode::Up)) => cmd_sender(Cmd::MoveCursor(Direction::Up)),
 
         // Insert
-        (Mode::Insert, InputMsg::CharPressed(c)) if !c.is_control() => {
+        (Mode::Insert, InputMsg::CharPressed(c)) if is_valid_key(c) => {
             cmd_sender(Cmd::InsertChar(c, true))
         }
         (Mode::Insert, InputMsg::KeyPressed(key)) => match key {
@@ -31,20 +35,21 @@ pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -
         },
 
         // Command
-        (Mode::Command, InputMsg::CharPressed(c)) if !c.is_control() => {
+        (Mode::Command, InputMsg::CharPressed(c)) if is_valid_key(c) => {
             cmd_sender(Cmd::InsertChar(c, true))
         }
         (Mode::Command, InputMsg::KeyPressed(key)) => match key {
             VirtualKeyCode::Back => cmd_sender(Cmd::DeleteChar(DeleteDirection::Before)),
-            VirtualKeyCode::Return => cmd_sender(Cmd::InsertChar('\n', true)),
+            VirtualKeyCode::Return => cmd_sender(Cmd::Submit),
             VirtualKeyCode::Escape => cmd_sender(Cmd::ChangeMode(Mode::Normal)),
             _ => {}
         },
 
-        (Mode::Jump, InputMsg::KeyPressed(key)) => match key {
-            VirtualKeyCode::Escape => cmd_sender(Cmd::ChangeMode(Mode::Normal)),
-            _ => {}
-        },
+        (Mode::Jump, InputMsg::KeyPressed(key)) => {
+            if key == VirtualKeyCode::Escape {
+                cmd_sender(Cmd::ChangeMode(Mode::Normal));
+            }
+        }
         (Mode::Jump, InputMsg::CharPressed(c)) => {
             match c {
                 'l' => cmd_sender(Cmd::Jump(JumpType::EndOfLine)),
@@ -56,12 +61,15 @@ pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -
             cmd_sender(Cmd::ChangeMode(Mode::Normal));
         }
 
-        (Mode::Skim, InputMsg::CharPressed(c)) if !c.is_control() => {
+        (Mode::Skim, InputMsg::CharPressed('\n')) => cmd_sender(Cmd::MoveCursor(Direction::Down)),
+        (Mode::Skim, InputMsg::CharPressed('\u{b}')) => cmd_sender(Cmd::MoveCursor(Direction::Up)),
+
+        (Mode::Skim, InputMsg::CharPressed(c)) if is_valid_key(c) => {
             cmd_sender(Cmd::InsertChar(c, true))
         }
         (Mode::Skim, InputMsg::KeyPressed(key)) => match key {
             VirtualKeyCode::Back => cmd_sender(Cmd::DeleteChar(DeleteDirection::Before)),
-            VirtualKeyCode::Return => cmd_sender(Cmd::InsertChar('\n', true)),
+            VirtualKeyCode::Return => cmd_sender(Cmd::Submit),
             VirtualKeyCode::Escape => cmd_sender(Cmd::ChangeMode(Mode::Normal)),
             _ => {}
         },
