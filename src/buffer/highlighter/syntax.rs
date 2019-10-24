@@ -3,7 +3,7 @@ use fancy_regex::Regex as FRegex;
 use regex::Regex;
 
 #[derive(Debug)]
-struct Scope {
+pub struct Scope {
     name: String,
 }
 
@@ -126,10 +126,9 @@ impl Context {
 }
 
 use std::collections::HashMap;
-use std::rc::Rc;
 
 #[derive(Debug)]
-struct Syntax {
+pub struct Syntax {
     contexts: HashMap<String, Context>,
     name: String,
     file_extensions: Vec<String>,
@@ -196,28 +195,5 @@ impl Syntax {
         } else {
             Err(Error::BuildingSyntax)
         }
-    }
-}
-
-struct Node {
-    prev: Rc<Node>,
-    child_tail: Rc<Node>,
-    context: String,
-    scope: Scope,
-}
-
-pub struct Highlighter {
-    // tail: Rc<Node>
-    syntax: Syntax,
-}
-
-const RUST_SYNTAX: &'static str = include_str!("./Rust.sublime-syntax");
-
-impl Highlighter {
-    pub fn new() -> Result<Self> {
-        let syntax: Syntax = Syntax::new(serde_yaml::from_str(RUST_SYNTAX)?)?;
-        Ok(Highlighter {
-            syntax: dbg!(syntax),
-        })
     }
 }
