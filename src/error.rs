@@ -10,6 +10,8 @@ pub enum Error {
     Command(CommandError),
     WalkDir(String),
     NeedFilePath,
+    YAML(String),
+    BuildingSyntax,
 }
 
 impl CommandError {
@@ -30,6 +32,8 @@ impl Error {
             Command(err) => err.as_string(),
             WalkDir(err) => format!("WalkDir: {}", err),
             NeedFilePath => "Need a file path to save a new buffer".to_owned(),
+            YAML(err) => format!("YAML error: {}", err),
+            BuildingSyntax => "Failed to build syntax".to_owned(),
         }
     }
 }
@@ -49,6 +53,12 @@ impl From<std::io::Error> for Error {
 impl From<CommandError> for Error {
     fn from(err: CommandError) -> Error {
         Error::Command(err)
+    }
+}
+
+impl From<serde_yaml::Error> for Error {
+    fn from(err: serde_yaml::Error) -> Error {
+        Error::YAML(err.to_string())
     }
 }
 

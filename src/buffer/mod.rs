@@ -11,11 +11,16 @@ use winit::dpi::PhysicalSize;
 
 pub type BufferKey = DefaultKey;
 
+mod highlighter;
+
+use highlighter::Highlighter;
+
 pub struct Buffer {
     rope: Rope,
     cursor: Cursor,
     offset: usize,
     file: Option<std::path::PathBuf>,
+    highlighter: Highlighter,
 }
 
 fn log10(num: usize) -> usize {
@@ -31,13 +36,14 @@ fn log10(num: usize) -> usize {
 }
 
 impl Buffer {
-    pub fn new() -> Buffer {
-        Buffer {
+    pub fn new() -> Result<Buffer> {
+        Ok(Buffer {
             rope: Rope::new(),
             cursor: Cursor::new(),
             offset: 0,
             file: None,
-        }
+            highlighter: Highlighter::new()?,
+        })
     }
 
     pub fn load_file(file_path: std::path::PathBuf) -> Result<Buffer> {
@@ -46,6 +52,7 @@ impl Buffer {
             cursor: Cursor::new(),
             offset: 0,
             file: Some(file_path),
+            highlighter: Highlighter::new()?,
         })
     }
 

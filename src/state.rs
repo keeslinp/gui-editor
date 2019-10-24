@@ -1,7 +1,7 @@
 use crate::{
     buffer::{Buffer, BufferKey},
     command::CommandBuffer,
-    error::Error,
+    error::{Error, Result},
     mode::Mode,
     skim_buffer::SkimBuffer,
 };
@@ -18,12 +18,12 @@ pub struct State {
 }
 
 impl State {
-    pub fn new() -> State {
+    pub fn new() -> Result<State> {
         let mut buffer_keys = SlotMap::new();
         let current_buffer = buffer_keys.insert(());
         let mut buffers = SecondaryMap::new();
-        buffers.insert(current_buffer, Buffer::new());
-        State {
+        buffers.insert(current_buffer, Buffer::new()?);
+        Ok(State {
             buffers,
             buffer_keys,
             current_buffer,
@@ -31,6 +31,6 @@ impl State {
             command_buffer: CommandBuffer::default(),
             error: None,
             skim_buffer: SkimBuffer::default(),
-        }
+        })
     }
 }

@@ -22,6 +22,8 @@ mod text_buffer;
 
 use render::{RenderFrame, Renderer};
 
+use error::Result;
+
 use state::State;
 
 use handle_command::handle_command;
@@ -88,7 +90,7 @@ fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSi
     }
 }
 
-fn main() {
+fn main() -> Result<()> {
     let event_loop: EventLoop<Msg> = EventLoop::with_user_event();
 
     let window = winit::window::WindowBuilder::new()
@@ -101,7 +103,7 @@ fn main() {
     let mut size = window.inner_size().to_physical(window.hidpi_factor());
 
     // END OF SETUP
-    let mut state = State::new();
+    let mut state = State::new()?;
 
     let msg_sender = event_loop.create_proxy();
 
