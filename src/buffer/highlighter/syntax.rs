@@ -2,7 +2,7 @@ use crate::error::{Error, Result};
 use fancy_regex::Regex as FRegex;
 use regex::Regex;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Scope {
     name: String,
 }
@@ -21,7 +21,7 @@ impl core::ops::Deref for Scope {
 }
 
 #[derive(Debug)]
-enum MatchAction {
+pub enum MatchAction {
     Push(String),
     PushInLine(Context),
     Pop,
@@ -29,11 +29,11 @@ enum MatchAction {
 }
 
 #[derive(Debug)]
-struct Match {
-    regex: FRegex,
-    action: MatchAction,
-    scope: Option<Scope>,
-    captures: Option<Vec<Scope>>,
+pub struct Match {
+    pub regex: FRegex,
+    pub action: Option<MatchAction>,
+    pub scope: Option<Scope>,
+    pub captures: Option<Vec<Scope>>,
 }
 
 impl From<fancy_regex::Error> for Error {
@@ -76,19 +76,19 @@ impl Match {
             .get(&serde_yaml::Value::String("scope".to_string()))
             .and_then(|v| v.as_str())
             .map(|s| s.to_string().into());
-        let action: MatchAction =
+        let action: Option<MatchAction> =
             if let Some(push) = map.get(&serde_yaml::Value::String("push".to_string())) {
                 if let Some(push_str) = push.as_str() {
-                    MatchAction::Push(push_str.to_string())
+                    Some(MatchAction::Push(push_str.to_string()))
                 } else if let Some(push_context) = push.as_sequence() {
-                    MatchAction::PushInLine(Context::new(push_context, variables)?)
+                    Some(MatchAction::PushInLine(Context::new(push_context, variables)?))
                 } else {
                     return Err(Error::BuildingSyntax);
                 }
             } else if let Some(_pop) = map.get(&serde_yaml::Value::String("pop".to_string())) {
-                MatchAction::Pop
+                Some(MatchAction::Pop)
             } else {
-                return Err(Error::BuildingSyntax);
+                None
             };
         Ok(Match {
             regex,
@@ -100,9 +100,9 @@ impl Match {
 }
 
 #[derive(Debug)]
-struct Context {
-    matches: Vec<Match>,
-    meta_scope: Option<String>,
+pub struct Context {
+    pub matches: Vec<Match>,
+    pub meta_scope: Option<Scope>,
 }
 
 impl Context {
@@ -116,7 +116,7 @@ impl Context {
             .iter()
             .flat_map(|v| v.get("meta_scope"))
             .flat_map(|meta_scope| meta_scope.as_str())
-            .map(|s| s.to_string())
+            .map(|s| s.to_string().into())
             .next();
         Ok(Context {
             matches,
@@ -129,11 +129,11 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Syntax {
-    contexts: HashMap<String, Context>,
-    name: String,
-    file_extensions: Vec<String>,
-    scope: String,
-    variables: HashMap<String, String>,
+    pub contexts: HashMap<String, Context>,
+    pub name: String,
+    pub file_extensions: Vec<String>,
+    pub scope: String,
+    pub variables: HashMap<String, String>,
 }
 
 impl Syntax {

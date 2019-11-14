@@ -47,12 +47,15 @@ impl Buffer {
     }
 
     pub fn load_file(file_path: std::path::PathBuf) -> Result<Buffer> {
+        let mut highlighter = Highlighter::new()?;
+        let rope = Rope::from_reader(std::fs::File::open(file_path.as_path())?)?;
+        highlighter.parse(rope.slice(..));
         Ok(Buffer {
-            rope: Rope::from_reader(std::fs::File::open(file_path.as_path())?)?,
+            rope,
             cursor: Cursor::new(),
             offset: 0,
             file: Some(file_path),
-            highlighter: Highlighter::new()?,
+            highlighter,
         })
     }
 

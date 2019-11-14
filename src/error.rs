@@ -12,6 +12,7 @@ pub enum Error {
     NeedFilePath,
     YAML(String),
     BuildingSyntax,
+    Highlighting,
 }
 
 impl CommandError {
@@ -34,6 +35,7 @@ impl Error {
             NeedFilePath => "Need a file path to save a new buffer".to_owned(),
             YAML(err) => format!("YAML error: {}", err),
             BuildingSyntax => "Failed to build syntax".to_owned(),
+            Highlighting => "Failed to highlight".to_owned(),
         }
     }
 }
