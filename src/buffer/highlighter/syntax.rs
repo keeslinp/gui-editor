@@ -103,6 +103,7 @@ impl Match {
 pub struct Context {
     pub matches: Vec<Match>,
     pub meta_scope: Option<Scope>,
+    pub includes: Vec<String>,
 }
 
 impl Context {
@@ -118,9 +119,17 @@ impl Context {
             .flat_map(|meta_scope| meta_scope.as_str())
             .map(|s| s.to_string().into())
             .next();
+        let includes = value
+            .iter()
+            .flat_map(|v| v.as_mapping())
+            .flat_map(|i| i.get(&serde_yaml::Value::String("include".to_string())))
+            .flat_map(|v| v.as_str())
+            .map(|s| s.to_string())
+            .collect();
         Ok(Context {
             matches,
             meta_scope,
+            includes,
         })
     }
 }
@@ -163,7 +172,6 @@ impl Syntax {
                 })
                 .collect();
 
-            // let contexts: Option<HashMap<String, String>> = values.get("contexts").and_then(|v|.v.as_mapping()).map(
             let contexts: HashMap<String, Context> = values
                 .get("contexts")
                 .and_then(|v| v.as_mapping())

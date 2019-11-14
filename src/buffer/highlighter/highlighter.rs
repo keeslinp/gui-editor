@@ -18,7 +18,7 @@ struct ScopeMatch {
     char_range: Range<usize>,
 }
 
-fn consume_next_match(slice: RopeSlice, context: &Context, char_offset: usize) -> Vec<ScopeMatch> {
+fn consume_next_match(slice: RopeSlice, context: &Context, char_offset: usize, contexts: &HashMap<String, Context>) -> Vec<ScopeMatch> {
     if let Some(line) = slice.lines().next().and_then(|l| l.as_str()) {
         if (line.trim() == "") {
             return vec![ScopeMatch {
@@ -26,11 +26,9 @@ fn consume_next_match(slice: RopeSlice, context: &Context, char_offset: usize) -
                 char_range: char_offset..(char_offset+ line.len()),
             }];
         }
-        dbg!(line);
-        for m in context.matches.iter() {
+        for m in context.matches.iter().chain(context.includes.iter().flat_map(|include| contexts.get(include).unwrap().matches.iter())) {
             if let Ok(Some(captures)) = m.regex.captures(line) {
                 if let Some(c) = captures.get(0) {
-                    dbg!(c, m);
                     let scope_match = ScopeMatch {
                         scope: m.scope.clone().or(context.meta_scope.clone()), // TODO: Figure out what the hell to do here
                         char_range: (char_offset + c.start()..(char_offset + c.end())),
@@ -62,7 +60,7 @@ impl Node {
         loop {
             let current_context = &contexts[&stack[stack.len() - 1]];
             let offset = last_node.as_ref().map(|node| node.char_range.end + 1).unwrap_or(0);
-            let scope_matches = consume_next_match(slice.slice(offset..), current_context, offset);
+            let scope_matches = consume_next_match(slice.slice(offset..), current_context, offset, contexts);
             if scope_matches.len() == 0 {
                 break;
             }
