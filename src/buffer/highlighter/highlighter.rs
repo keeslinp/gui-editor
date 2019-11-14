@@ -58,7 +58,7 @@ impl Node {
     }
     fn build(prev: Option<Rc<Node>>, slice: RopeSlice, contexts: &HashMap<String, Context>) -> Option<Rc<Node>> {
         let mut last_node: Option<Rc<Node>> = None;
-        let mut stack = vec!["statements".to_owned()];
+        let mut stack = vec!["main".to_owned()];
         loop {
             let current_context = &contexts[&stack[stack.len() - 1]];
             let offset = last_node.as_ref().map(|node| node.char_range.end + 1).unwrap_or(0);
