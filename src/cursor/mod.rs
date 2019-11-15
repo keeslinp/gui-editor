@@ -3,7 +3,7 @@ use crate::{
     point::Point,
     render::RenderFrame,
 };
-use ropey::Rope;
+use ropey::RopeSlice;
 
 pub struct Cursor {
     position: Point,
@@ -18,11 +18,11 @@ impl Cursor {
         }
     }
 
-    pub fn index(&self, rope: &Rope) -> usize {
+    pub fn index(&self, rope: &RopeSlice) -> usize {
         self.position.index(rope)
     }
 
-    pub fn step(&mut self, direction: Direction, rope: &Rope) {
+    pub fn step(&mut self, direction: Direction, rope: &RopeSlice) {
         self.position.step(direction, rope);
         match direction {
             Direction::Left | Direction::Right => {
@@ -56,7 +56,7 @@ impl Cursor {
     pub fn row(&self) -> usize {
         self.position.y as usize
     }
-    pub fn jump(&mut self, jump_type: JumpType, rope: &Rope) {
+    pub fn jump(&mut self, jump_type: JumpType, rope: &RopeSlice) {
         self.position.jump(jump_type, rope);
         self.saved_x = self.position.x;
     }

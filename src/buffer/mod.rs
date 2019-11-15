@@ -75,19 +75,19 @@ impl Buffer {
     pub fn insert_char(&mut self, c: char, should_step: bool, window_size: PhysicalSize) {
         match c {
             '\t' => {
-                self.rope.insert(self.cursor.index(&self.rope), "    ");
+                self.rope.insert(self.cursor.index(&self.rope.slice(..)), "    ");
 
                 if should_step {
-                    self.cursor.step(Direction::Right, &self.rope);
-                    self.cursor.step(Direction::Right, &self.rope);
-                    self.cursor.step(Direction::Right, &self.rope);
-                    self.cursor.step(Direction::Right, &self.rope);
+                    self.cursor.step(Direction::Right, &self.rope.slice(..));
+                    self.cursor.step(Direction::Right, &self.rope.slice(..));
+                    self.cursor.step(Direction::Right, &self.rope.slice(..));
+                    self.cursor.step(Direction::Right, &self.rope.slice(..));
                 }
             }
             c => {
-                self.rope.insert_char(self.cursor.index(&self.rope), c);
+                self.rope.insert_char(self.cursor.index(&self.rope.slice(..)), c);
                 if should_step {
-                    self.cursor.step(Direction::Right, &self.rope);
+                    self.cursor.step(Direction::Right, &self.rope.slice(..));
                 }
             }
         }
@@ -108,14 +108,14 @@ impl Buffer {
     pub fn delete_char(&mut self, direction: DeleteDirection, window_size: PhysicalSize) {
         match direction {
             DeleteDirection::Before => {
-                let char_index = self.cursor.index(&self.rope);
+                let char_index = self.cursor.index(&self.rope.slice(..));
                 if char_index > 0 {
                     self.rope.remove(char_index - 1..char_index);
-                    self.cursor.step(Direction::Left, &self.rope);
+                    self.cursor.step(Direction::Left, &self.rope.slice(..));
                 }
             }
             DeleteDirection::After => {
-                let char_index = self.cursor.index(&self.rope);
+                let char_index = self.cursor.index(&self.rope.slice(..));
                 if char_index < self.rope.len_chars() {
                     self.rope.remove(char_index..=char_index);
                 }
@@ -130,48 +130,51 @@ impl Buffer {
         let line_offset = log10(line_len);
         let line_offset_px = line_offset as f32 * 15.;
         use wgpu_glyph::{HorizontalAlign, Layout};
-        for visible_line in 0..visible_lines {
-            let real_line = self.offset + visible_line;
-            let line_in_buffer: bool = real_line < line_len;
-            if line_in_buffer {
-                render_frame.queue_text(Section {
-                    text: &format!("{}", real_line + 1),
-                    screen_position: (10. + line_offset_px, 10. + visible_line as f32 * 25.),
-                    color: [0.514, 0.58, 0.588, 1.],
-                    scale: Scale { x: 30., y: 30. },
-                    layout: Layout::default().h_align(HorizontalAlign::Right),
-                    ..Section::default()
-                });
-                let line = self.rope.line(real_line);
-                if let Some(text) = line.as_str() {
-                    render_frame.queue_text(Section {
-                        text,
-                        screen_position: (30. + line_offset_px, 10. + visible_line as f32 * 25.),
-                        color: [0.514, 0.58, 0.588, 1.],
-                        scale: Scale { x: 30., y: 30. },
-                        ..Section::default()
-                    });
-                }
-            } else {
-                render_frame.queue_text(Section {
-                    text: "~",
-                    screen_position: (10., 10. + visible_line as f32 * 25.),
-                    color: [0., 1., 0., 1.],
-                    scale: Scale { x: 30., y: 30. },
-                    ..Section::default()
-                });
-            }
-        }
+        let char_offset = self.rope.line_to_char(self.offset);
+        let char_end = self.rope.len_chars();
+        self.highlighter.render(render_frame, (char_offset..char_end), self.rope.slice(..), 30. + line_offset_px, char_offset as f32 * 25. - 10.);
+        // for visible_line in 0..visible_lines {
+        //     let real_line = self.offset + visible_line;
+        //     let line_in_buffer: bool = real_line < line_len;
+        //     if line_in_buffer {
+        //         render_frame.queue_text(Section {
+        //             text: &format!("{}", real_line + 1),
+        //             screen_position: (10. + line_offset_px, 10. + visible_line as f32 * 25.),
+        //             color: [0.514, 0.58, 0.588, 1.],
+        //             scale: Scale { x: 30., y: 30. },
+        //             layout: Layout::default().h_align(HorizontalAlign::Right),
+        //             ..Section::default()
+        //         });
+        //         let line = self.rope.line(real_line);
+        //         if let Some(text) = line.as_str() {
+        //             render_frame.queue_text(Section {
+        //                 text,
+        //                 screen_position: (30. + line_offset_px, 10. + visible_line as f32 * 25.),
+        //                 color: [0.514, 0.58, 0.588, 1.],
+        //                 scale: Scale { x: 30., y: 30. },
+        //                 ..Section::default()
+        //             });
+        //         }
+        //     } else {
+        //         render_frame.queue_text(Section {
+        //             text: "~",
+        //             screen_position: (10., 10. + visible_line as f32 * 25.),
+        //             color: [0., 1., 0., 1.],
+        //             scale: Scale { x: 30., y: 30. },
+        //             ..Section::default()
+        //         });
+        //     }
+        // }
         self.cursor.render(render_frame, line_offset, self.offset);
     }
 
     pub fn step(&mut self, direction: Direction, window_size: PhysicalSize) {
-        self.cursor.step(direction, &self.rope);
+        self.cursor.step(direction, &self.rope.slice(..));
         self.adjust_viewport(window_size);
     }
 
     pub fn jump(&mut self, jump_type: JumpType, window_size: PhysicalSize) {
-        self.cursor.jump(jump_type, &self.rope);
+        self.cursor.jump(jump_type, &self.rope.slice(..));
         self.adjust_viewport(window_size);
     }
 }

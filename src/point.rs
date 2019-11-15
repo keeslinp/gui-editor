@@ -1,5 +1,5 @@
 use crate::msg::{Direction, JumpType};
-use ropey::Rope;
+use ropey::RopeSlice;
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Point {
@@ -8,14 +8,21 @@ pub struct Point {
 }
 
 impl Point {
-    pub fn index(&self, rope: &Rope) -> usize {
+    pub fn index(&self, rope: &RopeSlice) -> usize {
         rope.line_to_char(self.y as usize) + self.x as usize
     }
-    pub fn step_to_index(&mut self, index: usize, rope: &Rope) {
-        self.y = rope.char_to_line(index) as u16;
-        self.x = (index - rope.line_to_char(self.y as usize)) as u16;
+    pub fn from_index(index: usize, rope: &RopeSlice) -> Self {
+        let y = rope.char_to_line(index) as u16;
+        let x = (index - rope.line_to_char(y as usize)) as u16;
+        Point {
+            x,
+            y
+        }
     }
-    pub fn prevent_runoff(&mut self, rope: &Rope) {
+    pub fn step_to_index(&mut self, index: usize, rope: &RopeSlice) {
+        *self = Point::from_index(index, rope);
+    }
+    pub fn prevent_runoff(&mut self, rope: &RopeSlice) {
         let line_len = rope.line(self.y as usize).len_chars() as u16;
         if line_len <= self.x {
             if line_len == 0 {
@@ -25,7 +32,7 @@ impl Point {
             }
         }
     }
-    pub fn step(&mut self, direction: Direction, rope: &Rope) {
+    pub fn step(&mut self, direction: Direction, rope: &RopeSlice) {
         match direction {
             Direction::Left => {
                 let index = self.index(rope);
@@ -51,7 +58,7 @@ impl Point {
             }
         }
     }
-    pub fn jump(&mut self, jump_type: JumpType, rope: &Rope) {
+    pub fn jump(&mut self, jump_type: JumpType, rope: &RopeSlice) {
         match jump_type {
             JumpType::EndOfLine => {
                 let line = rope.line(self.y as usize);
