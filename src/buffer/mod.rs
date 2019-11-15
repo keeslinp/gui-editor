@@ -103,6 +103,7 @@ impl Buffer {
                 self.offset = self.cursor.row() - visible_lines + 1;
             }
         }
+        self.highlighter.parse(self.rope.slice(..));
     }
 
     pub fn delete_char(&mut self, direction: DeleteDirection, window_size: PhysicalSize) {

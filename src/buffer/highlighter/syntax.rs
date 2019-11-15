@@ -4,7 +4,7 @@ use regex::Regex;
 
 #[derive(Debug, Clone)]
 pub struct Scope {
-    name: String,
+    pub name: String,
 }
 
 impl From<String> for Scope {
@@ -23,6 +23,7 @@ impl core::ops::Deref for Scope {
 #[derive(Debug)]
 pub enum MatchAction {
     Push(String),
+    PushList(Vec<String>),
     PushInLine(Context),
     Pop,
     Set(String),
@@ -80,8 +81,12 @@ impl Match {
             if let Some(push) = map.get(&serde_yaml::Value::String("push".to_string())) {
                 if let Some(push_str) = push.as_str() {
                     Some(MatchAction::Push(push_str.to_string()))
-                } else if let Some(push_context) = push.as_sequence() {
-                    Some(MatchAction::PushInLine(Context::new(push_context, variables)?))
+                } else if let Some(push_sequence) = push.as_sequence() {
+                    if push_sequence[0].is_mapping() {
+                        Some(MatchAction::PushInLine(Context::new(push_sequence, variables)?))
+                    } else {
+                        Some(MatchAction::PushList(push_sequence.iter().flat_map(|v| v.as_str()).map(|s| s.to_string()).collect()))
+                    }
                 } else {
                     return Err(Error::BuildingSyntax);
                 }
