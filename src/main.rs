@@ -5,6 +5,7 @@ use winit::{
 };
 
 use wgpu_glyph::{Scale, Section};
+use structopt::StructOpt;
 
 mod buffer;
 mod command;
@@ -27,6 +28,7 @@ use state::State;
 use handle_command::handle_command;
 
 use msg::{Cmd, InputMsg, Msg};
+
 
 fn update_state(
     state: &mut State,
@@ -88,7 +90,16 @@ fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSi
     }
 }
 
+#[derive(Debug, StructOpt)]
+#[structopt(name = "example", about = "An example of StructOpt usage.")]
+struct Opt {
+    #[structopt(parse(from_os_str))]
+    input: Option<std::path::PathBuf>,
+}
+
 fn main() {
+    let opt = Opt::from_args();
+
     let event_loop: EventLoop<Msg> = EventLoop::with_user_event();
 
     let window = winit::window::WindowBuilder::new()
@@ -104,6 +115,10 @@ fn main() {
     let mut state = State::new();
 
     let msg_sender = event_loop.create_proxy();
+
+    if let Some(file_path) = opt.input {
+        msg_sender.send_event(Msg::Cmd(Cmd::LoadFile(file_path))).expect("Sending file open event");
+    }
 
     let mut dirty = false;
 
