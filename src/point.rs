@@ -14,10 +14,7 @@ impl Point {
     pub fn from_index(index: usize, rope: &RopeSlice) -> Self {
         let y = rope.char_to_line(index) as u16;
         let x = (index - rope.line_to_char(y as usize)) as u16;
-        Point {
-            x,
-            y
-        }
+        Point { x, y }
     }
     pub fn step_to_index(&mut self, index: usize, rope: &RopeSlice) {
         *self = Point::from_index(index, rope);

@@ -83,15 +83,26 @@ impl Match {
                     Some(MatchAction::Push(push_str.to_string()))
                 } else if let Some(push_sequence) = push.as_sequence() {
                     if push_sequence[0].is_mapping() {
-                        Some(MatchAction::PushInLine(Context::new(push_sequence, variables)?))
+                        Some(MatchAction::PushInLine(Context::new(
+                            push_sequence,
+                            variables,
+                        )?))
                     } else {
-                        Some(MatchAction::PushList(push_sequence.iter().flat_map(|v| v.as_str()).map(|s| s.to_string()).collect()))
+                        Some(MatchAction::PushList(
+                            push_sequence
+                                .iter()
+                                .flat_map(|v| v.as_str())
+                                .map(|s| s.to_string())
+                                .collect(),
+                        ))
                     }
                 } else {
                     return Err(Error::BuildingSyntax);
                 }
             } else if let Some(_pop) = map.get(&serde_yaml::Value::String("pop".to_string())) {
                 Some(MatchAction::Pop)
+            } else if let Some(set) = map.get(&serde_yaml::Value::String("set".to_string())) {
+                set.as_str().map(|s| MatchAction::Set(s.to_string()))
             } else {
                 None
             };

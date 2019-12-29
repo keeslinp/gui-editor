@@ -75,7 +75,8 @@ impl Buffer {
     pub fn insert_char(&mut self, c: char, should_step: bool, window_size: PhysicalSize) {
         match c {
             '\t' => {
-                self.rope.insert(self.cursor.index(&self.rope.slice(..)), "    ");
+                self.rope
+                    .insert(self.cursor.index(&self.rope.slice(..)), "    ");
 
                 if should_step {
                     self.cursor.step(Direction::Right, &self.rope.slice(..));
@@ -85,25 +86,28 @@ impl Buffer {
                 }
             }
             c => {
-                self.rope.insert_char(self.cursor.index(&self.rope.slice(..)), c);
+                self.rope
+                    .insert_char(self.cursor.index(&self.rope.slice(..)), c);
                 if should_step {
                     self.cursor.step(Direction::Right, &self.rope.slice(..));
                 }
             }
         }
         self.adjust_viewport(window_size);
+        self.highlighter.parse(self.rope.slice(..));
     }
 
     fn adjust_viewport(&mut self, window_size: PhysicalSize) {
         if self.cursor.row() < self.offset {
             self.offset = self.cursor.row();
+            self.highlighter.parse(self.rope.slice(..));
         } else {
             let visible_lines = get_visible_lines(window_size);
             if self.cursor.row() >= visible_lines + self.offset {
                 self.offset = self.cursor.row() - visible_lines + 1;
+                self.highlighter.parse(self.rope.slice(..));
             }
         }
-        self.highlighter.parse(self.rope.slice(..));
     }
 
     pub fn delete_char(&mut self, direction: DeleteDirection, window_size: PhysicalSize) {
@@ -123,6 +127,7 @@ impl Buffer {
             }
         };
         self.adjust_viewport(window_size);
+        self.highlighter.parse(self.rope.slice(..));
     }
 
     pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
@@ -133,7 +138,13 @@ impl Buffer {
         use wgpu_glyph::{HorizontalAlign, Layout};
         let char_offset = self.rope.line_to_char(self.offset);
         let char_end = self.rope.len_chars();
-        self.highlighter.render(render_frame, (char_offset..char_end), self.rope.slice(..), 30. + line_offset_px, char_offset as f32 * 25. - 10.);
+        self.highlighter.render(
+            render_frame,
+            (char_offset..char_end),
+            self.rope.slice(..),
+            30. + line_offset_px,
+            self.offset as f32 * 25. - 10.,
+        );
         // for visible_line in 0..visible_lines {
         //     let real_line = self.offset + visible_line;
         //     let line_in_buffer: bool = real_line < line_len;
