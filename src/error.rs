@@ -1,3 +1,4 @@
+use crate::msg::Msg;
 #[derive(Debug, PartialEq, Clone)]
 pub enum CommandError {
     MissingArg,
@@ -13,6 +14,7 @@ pub enum Error {
     YAML(String),
     BuildingSyntax,
     Highlighting,
+    MsgFailed,
 }
 
 impl CommandError {
@@ -36,6 +38,7 @@ impl Error {
             YAML(err) => format!("YAML error: {}", err),
             BuildingSyntax => "Failed to build syntax".to_owned(),
             Highlighting => "Failed to highlight".to_owned(),
+            MsgFailed => "Failed to pass message to winit".to_owned(),
         }
     }
 }
@@ -61,6 +64,12 @@ impl From<CommandError> for Error {
 impl From<serde_yaml::Error> for Error {
     fn from(err: serde_yaml::Error) -> Error {
         Error::YAML(err.to_string())
+    }
+}
+
+impl From<winit::event_loop::EventLoopClosed<Msg>> for Error {
+    fn from(err: winit::event_loop::EventLoopClosed<Msg>) -> Error {
+        Error::MsgFailed // TODO: Fix Cycle so Msg can live here
     }
 }
 

@@ -4,6 +4,7 @@ use crate::{
     error::{Error, Result},
     mode::Mode,
     skim_buffer::SkimBuffer,
+    color_scheme,
 };
 use slotmap::{SecondaryMap, SlotMap};
 
@@ -15,6 +16,7 @@ pub struct State {
     pub command_buffer: CommandBuffer,
     pub error: Option<Error>,
     pub skim_buffer: SkimBuffer,
+    pub color_scheme: ColorScheme,
 }
 
 impl State {
@@ -31,6 +33,7 @@ impl State {
             command_buffer: CommandBuffer::default(),
             error: None,
             skim_buffer: SkimBuffer::default(),
+            color_scheme: ColorScheme::build()?,
         })
     }
 }

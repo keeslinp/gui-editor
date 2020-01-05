@@ -1,4 +1,4 @@
-use super::syntax::{Context, Match, MatchAction, Scope, Syntax};
+use super::syntax::{Context, Match, MatchAction, Scope, StackValue, Syntax};
 use crate::{
     error::{Error, Result},
     point::Point,
@@ -12,7 +12,7 @@ use wgpu_glyph::{Scale, Section};
 
 #[derive(Debug, Clone)]
 struct Node {
-    context_stack: Vec<String>,
+    context_stack: Vec<StackValue>,
     scope: Option<Scope>,
     char_range: Range<usize>,
     prev: Option<Rc<Node>>,
@@ -77,7 +77,7 @@ fn consume_next_match<'a>(
                 }
             }
         }
-        if let Some((m, mut scope_matches)) = dbg!(first_match) {
+        if let Some((m, mut scope_matches)) = first_match {
             if scope_matches[0].char_range.start > 0 {
                 let mut all_matches = vec![ScopeMatch {
                     scope: None,
@@ -103,7 +103,7 @@ fn consume_next_match<'a>(
 }
 
 impl Node {
-    fn from_scope_match(scope_match: ScopeMatch, stack: &[String]) -> Node {
+    fn from_scope_match(scope_match: ScopeMatch, stack: &[StackValue]) -> Node {
         Node {
             prev: None,
             context_stack: stack.to_vec(),
@@ -115,17 +115,22 @@ impl Node {
         prev: Option<Rc<Node>>,
         slice: RopeSlice,
         contexts: &HashMap<String, Context>,
+        anon_contexts: &[Context],
     ) -> Option<Rc<Node>> {
         let mut last_node: Option<Rc<Node>> = None;
-        let mut stack = vec!["main".to_owned()];
-        let mut inline_ctx: Option<&Context> = None;
+        let mut stack = vec![StackValue::Name("main".to_owned())];
         let mut end_cursor = 0;
         loop {
-            let current_context = inline_ctx.unwrap_or(&contexts[&stack[stack.len() - 1]]);
+            let current_context = match stack[stack.len() - 1] {
+                StackValue::Name(ref name) => &contexts[name.as_str()],
+                StackValue::Anon(ref index) => &anon_contexts[*index],
+            };
             if end_cursor >= slice.len_chars() {
                 break;
             }
-            dbg!(&stack);
+            if stack.len() > 20 {
+                panic!("Stack is overflowing");
+            }
             let (action, scope_matches) = consume_next_match(
                 slice.slice(end_cursor..),
                 current_context,
@@ -155,21 +160,10 @@ impl Node {
                     }
                 }
                 Some(MatchAction::Pop) => {
-                    if inline_ctx.is_some() {
-                        inline_ctx = None;
-                    } else {
-                        stack.pop();
-                    }
-                }
-                Some(MatchAction::PushInLine(ctx)) => {
-                    inline_ctx = Some(ctx);
+                    stack.pop();
                 }
                 Some(MatchAction::Set(stack_entry)) => {
-                    if inline_ctx.is_some() {
-                        inline_ctx = None;
-                    } else {
-                        stack.pop();
-                    }
+                    stack.pop();
                     stack.push(stack_entry.clone());
                 }
                 None => {}
@@ -196,6 +190,7 @@ fn get_color_for_scope(scope: &Option<Scope>) -> [f32; 4] {
         Some("keyword.other.rust") | Some("storage.modifier.rust") => [0., 0., 1., 1.],
         Some("storage.type.module.rust") => [0., 1., 0., 1.],
         Some("string.quoted.double.rust") => [1., 0., 0., 1.],
+        Some("support.macro.rust") | Some("punctuation.definition.annotation.rust") => [1., 0., 0., 1.],
         _ => [0.514, 0.58, 0.588, 1.],
     }
 }
@@ -210,7 +205,12 @@ impl Highlighter {
     }
 
     pub fn parse(&mut self, slice: RopeSlice) {
-        self.tail = Node::build(None, slice, &self.syntax.contexts);
+        self.tail = Node::build(
+            None,
+            slice,
+            &self.syntax.contexts,
+            self.syntax.anon_contexts.as_slice(),
+        );
     }
 
     pub fn render(

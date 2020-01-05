@@ -4,8 +4,8 @@ use winit::{
     event_loop::{ControlFlow, EventLoop, EventLoopProxy},
 };
 
-use wgpu_glyph::{Scale, Section};
 use structopt::StructOpt;
+use wgpu_glyph::{Scale, Section};
 
 mod buffer;
 mod command;
@@ -20,6 +20,7 @@ mod render;
 mod skim_buffer;
 mod state;
 mod text_buffer;
+mod color_scheme;
 
 use render::{RenderFrame, Renderer};
 
@@ -30,7 +31,6 @@ use state::State;
 use handle_command::handle_command;
 
 use msg::{Cmd, InputMsg, Msg};
-
 
 fn update_state(
     state: &mut State,
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
     let msg_sender = event_loop.create_proxy();
 
     if let Some(file_path) = opt.input {
-        msg_sender.send_event(Msg::Cmd(Cmd::LoadFile(file_path))).expect("Sending file open event");
+        msg_sender.send_event(Msg::Cmd(Cmd::LoadFile(file_path)))?;
     }
 
     let mut dirty = false;

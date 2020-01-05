@@ -20,13 +20,18 @@ impl core::ops::Deref for Scope {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum StackValue {
+    Name(String),
+    Anon(usize),
+}
+
+#[derive(Debug, Clone)]
 pub enum MatchAction {
-    Push(String),
-    PushList(Vec<String>),
-    PushInLine(Context),
+    Push(StackValue),
+    PushList(Vec<StackValue>),
     Pop,
-    Set(String),
+    Set(StackValue),
 }
 
 #[derive(Debug)]
@@ -46,16 +51,20 @@ impl From<fancy_regex::Error> for Error {
 use lazy_static::lazy_static;
 
 impl Match {
-    fn new(map: &serde_yaml::Mapping, variables: &HashMap<String, String>) -> Result<Match> {
+    fn new(
+        map: &serde_yaml::Mapping,
+        variables: &HashMap<String, String>,
+        anon_contexts: &mut Vec<Context>,
+    ) -> Result<Match> {
         lazy_static! {
-            static ref VAR_RE: Regex = Regex::new(r"\{\{(.*)\}\}").unwrap();
+            static ref VAR_RE: Regex = Regex::new(r"\{\{([^\}]*)\}\}").unwrap();
         }
         let regex: FRegex = map
             .get(&serde_yaml::Value::String("match".to_string()))
             .and_then(|v| v.as_str())
             .map(|s| {
                 VAR_RE.replace_all(s, |captures: &regex::Captures| {
-                    captures
+                    dbg!(captures)
                         .get(1)
                         .map(|c| c.as_str())
                         .and_then(|s| variables.get(s))
@@ -80,19 +89,19 @@ impl Match {
         let action: Option<MatchAction> =
             if let Some(push) = map.get(&serde_yaml::Value::String("push".to_string())) {
                 if let Some(push_str) = push.as_str() {
-                    Some(MatchAction::Push(push_str.to_string()))
+                    Some(MatchAction::Push(StackValue::Name(push_str.to_string())))
                 } else if let Some(push_sequence) = push.as_sequence() {
                     if push_sequence[0].is_mapping() {
-                        Some(MatchAction::PushInLine(Context::new(
-                            push_sequence,
-                            variables,
-                        )?))
+                        let anon = Context::new(push_sequence, variables, anon_contexts)?;
+                        let index = anon_contexts.len();
+                        anon_contexts.push(anon);
+                        Some(MatchAction::Push(StackValue::Anon(index)))
                     } else {
                         Some(MatchAction::PushList(
                             push_sequence
                                 .iter()
                                 .flat_map(|v| v.as_str())
-                                .map(|s| s.to_string())
+                                .map(|s| StackValue::Name(s.to_string()))
                                 .collect(),
                         ))
                     }
@@ -102,7 +111,8 @@ impl Match {
             } else if let Some(_pop) = map.get(&serde_yaml::Value::String("pop".to_string())) {
                 Some(MatchAction::Pop)
             } else if let Some(set) = map.get(&serde_yaml::Value::String("set".to_string())) {
-                set.as_str().map(|s| MatchAction::Set(s.to_string()))
+                set.as_str()
+                    .map(|s| MatchAction::Set(StackValue::Name(s.to_string())))
             } else {
                 None
             };
@@ -123,11 +133,15 @@ pub struct Context {
 }
 
 impl Context {
-    fn new(value: &serde_yaml::Sequence, variables: &HashMap<String, String>) -> Result<Context> {
+    fn new(
+        value: &serde_yaml::Sequence,
+        variables: &HashMap<String, String>,
+        anon_contexts: &mut Vec<Context>,
+    ) -> Result<Context> {
         let matches = value
             .iter()
             .flat_map(|v| v.as_mapping())
-            .flat_map(|m| Match::new(m, &variables))
+            .flat_map(|m| Match::new(m, &variables, anon_contexts))
             .collect();
         let meta_scope = value
             .iter()
@@ -155,6 +169,7 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct Syntax {
     pub contexts: HashMap<String, Context>,
+    pub anon_contexts: Vec<Context>,
     pub name: String,
     pub file_extensions: Vec<String>,
     pub scope: String,
@@ -187,7 +202,7 @@ impl Syntax {
                     }
                 })
                 .collect();
-
+            let mut anon_contexts: Vec<Context> = Vec::new(); // These get populated by the contexts as they are built - Anonymous inline contexts need a place to live
             let contexts: HashMap<String, Context> = values
                 .get("contexts")
                 .and_then(|v| v.as_mapping())
@@ -195,7 +210,7 @@ impl Syntax {
                 .iter()
                 .flat_map(|(k, v)| {
                     if let (Some(k), Some(v)) = (k.as_str(), v.as_sequence()) {
-                        Ok((k.to_string(), Context::new(v, &variables)?))
+                        Ok((k.to_string(), Context::new(v, &variables, &mut anon_contexts)?))
                     } else {
                         Err(Error::BuildingSyntax)
                     }
@@ -214,6 +229,7 @@ impl Syntax {
                 file_extensions,
                 variables,
                 contexts,
+                anon_contexts,
                 scope,
             })
         } else {
