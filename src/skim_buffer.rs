@@ -1,11 +1,12 @@
 use crate::{
     buffer::get_visible_lines,
-    error::Result,
     mode::Mode,
     msg::{Cmd, Direction, Msg},
     render::RenderFrame,
     text_buffer::TextBuffer,
 };
+
+use anyhow::Result;
 
 use winit::event_loop::EventLoopProxy;
 

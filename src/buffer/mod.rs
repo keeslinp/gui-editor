@@ -1,9 +1,11 @@
 use crate::{
     cursor::Cursor,
-    error::{Error, Result},
+    error::Error,
     msg::{DeleteDirection, Direction, JumpType},
     render::RenderFrame,
 };
+
+use anyhow::Result;
 use ropey::Rope;
 use slotmap::DefaultKey;
 use wgpu_glyph::{Scale, Section};
@@ -20,13 +22,14 @@ pub struct Buffer {
 
 fn log10(num: usize) -> usize {
     match num {
+        n if n < 1 => panic!("log10 doesn't work for n < 1"),
         n if n < 10 => 1,
         n if n < 100 => 2,
         n if n < 1000 => 3,
         n if n < 10000 => 4,
         n if n < 100_000 => 5,
         n if n < 1_000_000 => 6,
-        _ => 7, // Cross that bridge when we get there
+        _ => unimplemented!(), // Cross that bridge when we get there
     }
 }
 
@@ -58,7 +61,7 @@ impl Buffer {
             self.file = Some(path);
             Ok(())
         } else {
-            Err(Error::NeedFilePath)
+            Err(anyhow::Error::new(Error::NeedFilePath))
         }
     }
 

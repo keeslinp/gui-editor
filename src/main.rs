@@ -45,19 +45,19 @@ fn update_state(
             });
             false
         }
-        Msg::Cmd(Cmd::SetError(err)) => {
-            state.error = Some(err);
+        Msg::Cmd(Cmd::SetStatusText(status)) => {
+            state.status = Some(status);
             true
         }
         Msg::Cmd(cmd_msg) => {
             match handle_command(state, cmd_msg, msg_sender.clone(), window_size) {
                 Ok(should_render) => {
-                    state.error = None;
+                    state.status = None;
                     should_render
                 }
                 Err(err) => {
                     msg_sender
-                        .send_event(Msg::Cmd(Cmd::SetError(err)))
+                        .send_event(Msg::Cmd(Cmd::SetStatusText(err.to_string())))
                         .expect("setting error");
                     true
                 }
@@ -79,9 +79,9 @@ fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSi
     if state.mode == mode::Mode::Command {
         state.command_buffer.render(render_frame, window_size);
     }
-    if let Some(ref error) = state.error {
+    if let Some(ref status) = state.status {
         render_frame.queue_text(Section {
-            text: &error.as_string(),
+            text: status.as_str(),
             screen_position: (10., window_size.height as f32 - 30.),
             color: [1., 0., 0., 1.],
             scale: Scale { x: 30., y: 30. },

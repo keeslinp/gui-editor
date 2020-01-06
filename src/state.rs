@@ -13,7 +13,7 @@ pub struct State {
     pub current_buffer: BufferKey,
     pub mode: Mode,
     pub command_buffer: CommandBuffer,
-    pub error: Option<Error>,
+    pub status: Option<String>,
     pub skim_buffer: SkimBuffer,
 }
 
@@ -29,7 +29,7 @@ impl State {
             current_buffer,
             mode: Mode::Normal,
             command_buffer: CommandBuffer::default(),
-            error: None,
+            status: None,
             skim_buffer: SkimBuffer::default(),
         }
     }

@@ -1,8 +1,9 @@
 use crate::{
-    error::Result,
     msg::{Cmd, DeleteDirection, Direction},
     render::RenderFrame,
 };
+
+use anyhow::Result;
 
 use wgpu_glyph::{Scale, Section};
 use winit::dpi::PhysicalSize;
