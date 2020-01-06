@@ -27,13 +27,7 @@ impl Font {
         size: &PhysicalSize<u32>,
     ) {
         self.glyphs
-            .draw_queued(
-                device,
-                encoder,
-                target,
-                size.width,
-                size.height,
-            )
+            .draw_queued(device, encoder, target, size.width, size.height)
             .expect("Draw font");
     }
 }

@@ -1,7 +1,7 @@
 use crate::error::Error;
+use anyhow::Result;
 use fancy_regex::Regex as FRegex;
 use regex::Regex;
-use anyhow::Result;
 
 #[derive(Debug, Clone)]
 pub struct Scope {
@@ -211,7 +211,10 @@ impl Syntax {
                 .iter()
                 .flat_map(|(k, v)| {
                     if let (Some(k), Some(v)) = (k.as_str(), v.as_sequence()) {
-                        Ok((k.to_string(), Context::new(v, &variables, &mut anon_contexts)?))
+                        Ok((
+                            k.to_string(),
+                            Context::new(v, &variables, &mut anon_contexts)?,
+                        ))
                     } else {
                         Err(Error::BuildingSyntax.anyhow())
                     }

@@ -8,6 +8,7 @@ use structopt::StructOpt;
 use wgpu_glyph::{Scale, Section};
 
 mod buffer;
+mod color_scheme;
 mod command;
 mod cursor;
 mod error;
@@ -20,7 +21,6 @@ mod render;
 mod skim_buffer;
 mod state;
 mod text_buffer;
-mod color_scheme;
 
 use render::{RenderFrame, Renderer};
 
@@ -148,9 +148,7 @@ fn main() -> Result<()> {
             renderer.update_size(size);
             window.request_redraw();
         }
-        Event::RedrawRequested {
-            ..
-        } => {
+        Event::RedrawRequested { .. } => {
             let mut render_frame = renderer.start_frame();
             render(&mut render_frame, &state, size);
             render_frame.submit(&size);

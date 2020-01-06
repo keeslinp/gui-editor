@@ -24,11 +24,10 @@ struct ColorSchemeRaw {
     author: String,
     variables: HashMap<String, String>,
     globals: HashMap<String, String>,
-    rules: Vec<HashMap<String,String>>, // TODO: type this
+    rules: Vec<HashMap<String, String>>, // TODO: type this
 }
 
-pub struct ColorScheme {
-}
+pub struct ColorScheme {}
 
 impl ColorScheme {
     pub fn build() -> Result<ColorScheme> {

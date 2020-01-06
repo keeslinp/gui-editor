@@ -1,10 +1,10 @@
 use crate::{
     buffer::{Buffer, BufferKey},
+    color_scheme::ColorScheme,
     command::CommandBuffer,
     error::Error,
     mode::Mode,
     skim_buffer::SkimBuffer,
-    color_scheme::ColorScheme,
 };
 
 use anyhow::Result;

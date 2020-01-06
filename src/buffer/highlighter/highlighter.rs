@@ -1,15 +1,11 @@
 use super::syntax::{Context, Match, MatchAction, Scope, StackValue, Syntax};
-use crate::{
-    error::Error,
-    point::Point,
-    render::RenderFrame,
-};
+use crate::{error::Error, point::Point, render::RenderFrame};
+use anyhow::Result;
 use core::ops::Range;
 use ropey::RopeSlice;
 use std::collections::HashMap;
 use std::rc::Rc;
 use wgpu_glyph::{Scale, Section};
-use anyhow::Result;
 
 #[derive(Debug, Clone)]
 struct Node {
@@ -191,7 +187,9 @@ fn get_color_for_scope(scope: &Option<Scope>) -> [f32; 4] {
         Some("keyword.other.rust") | Some("storage.modifier.rust") => [0., 0., 1., 1.],
         Some("storage.type.module.rust") => [0., 1., 0., 1.],
         Some("string.quoted.double.rust") => [1., 0., 0., 1.],
-        Some("support.macro.rust") | Some("punctuation.definition.annotation.rust") => [1., 0., 0., 1.],
+        Some("support.macro.rust") | Some("punctuation.definition.annotation.rust") => {
+            [1., 0., 0., 1.]
+        }
         _ => [0.514, 0.58, 0.588, 1.],
     }
 }
