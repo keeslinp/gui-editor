@@ -1,6 +1,6 @@
 use super::syntax::{Context, Match, MatchAction, Scope, StackValue, Syntax};
 use crate::{
-    error::{Error, Result},
+    error::Error,
     point::Point,
     render::RenderFrame,
 };
@@ -9,6 +9,7 @@ use ropey::RopeSlice;
 use std::collections::HashMap;
 use std::rc::Rc;
 use wgpu_glyph::{Scale, Section};
+use anyhow::Result;
 
 #[derive(Debug, Clone)]
 struct Node {

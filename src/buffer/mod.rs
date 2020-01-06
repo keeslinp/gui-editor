@@ -1,9 +1,11 @@
 use crate::{
     cursor::Cursor,
-    error::{Error, Result},
+    error::Error,
     msg::{DeleteDirection, Direction, JumpType},
     render::RenderFrame,
 };
+
+use anyhow::Result;
 use ropey::Rope;
 use slotmap::DefaultKey;
 use wgpu_glyph::{Scale, Section};
@@ -25,13 +27,14 @@ pub struct Buffer {
 
 fn log10(num: usize) -> usize {
     match num {
+        n if n < 1 => panic!("log10 doesn't work for n < 1"),
         n if n < 10 => 1,
         n if n < 100 => 2,
         n if n < 1000 => 3,
         n if n < 10000 => 4,
         n if n < 100_000 => 5,
         n if n < 1_000_000 => 6,
-        _ => 7, // Cross that bridge when we get there
+        _ => unimplemented!(), // Cross that bridge when we get there
     }
 }
 
@@ -68,11 +71,11 @@ impl Buffer {
             self.file = Some(path);
             Ok(())
         } else {
-            Err(Error::NeedFilePath)
+            Err(anyhow::Error::new(Error::NeedFilePath))
         }
     }
 
-    pub fn insert_char(&mut self, c: char, should_step: bool, window_size: PhysicalSize) {
+    pub fn insert_char(&mut self, c: char, should_step: bool, window_size: PhysicalSize<u32>) {
         match c {
             '\t' => {
                 self.rope
@@ -97,7 +100,7 @@ impl Buffer {
         self.highlighter.parse(self.rope.slice(..));
     }
 
-    fn adjust_viewport(&mut self, window_size: PhysicalSize) {
+    fn adjust_viewport(&mut self, window_size: PhysicalSize<u32>) {
         if self.cursor.row() < self.offset {
             self.offset = self.cursor.row();
             self.highlighter.parse(self.rope.slice(..));
@@ -110,7 +113,7 @@ impl Buffer {
         }
     }
 
-    pub fn delete_char(&mut self, direction: DeleteDirection, window_size: PhysicalSize) {
+    pub fn delete_char(&mut self, direction: DeleteDirection, window_size: PhysicalSize<u32>) {
         match direction {
             DeleteDirection::Before => {
                 let char_index = self.cursor.index(&self.rope.slice(..));
@@ -130,7 +133,7 @@ impl Buffer {
         self.highlighter.parse(self.rope.slice(..));
     }
 
-    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
+    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
         let visible_lines = get_visible_lines(window_size);
         let line_len = self.rope.len_lines();
         let line_offset = log10(line_len);
@@ -180,17 +183,17 @@ impl Buffer {
         self.cursor.render(render_frame, line_offset, self.offset);
     }
 
-    pub fn step(&mut self, direction: Direction, window_size: PhysicalSize) {
+    pub fn step(&mut self, direction: Direction, window_size: PhysicalSize<u32>) {
         self.cursor.step(direction, &self.rope.slice(..));
         self.adjust_viewport(window_size);
     }
 
-    pub fn jump(&mut self, jump_type: JumpType, window_size: PhysicalSize) {
+    pub fn jump(&mut self, jump_type: JumpType, window_size: PhysicalSize<u32>) {
         self.cursor.jump(jump_type, &self.rope.slice(..));
         self.adjust_viewport(window_size);
     }
 }
 
-pub fn get_visible_lines(window_size: PhysicalSize) -> usize {
-    ((window_size.height - 10.) / 25.).floor() as usize - 1
+pub fn get_visible_lines(window_size: PhysicalSize<u32>) -> usize {
+    ((window_size.height - 10) / 25) as usize - 1
 }

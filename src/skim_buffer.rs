@@ -1,11 +1,12 @@
 use crate::{
     buffer::get_visible_lines,
-    error::Result,
     mode::Mode,
     msg::{Cmd, Direction, Msg},
     render::RenderFrame,
     text_buffer::TextBuffer,
 };
+
+use anyhow::Result;
 
 use winit::event_loop::EventLoopProxy;
 
@@ -112,7 +113,7 @@ impl SkimBuffer {
         }
         self.selected_option = 0;
     }
-    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
+    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
         let lines = get_visible_lines(window_size);
         if let Some(ref files) = self.sorted_files {
             for (index, entry) in files.iter().take(lines).enumerate() {

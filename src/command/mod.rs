@@ -1,10 +1,12 @@
 use crate::{
-    error::{CommandError, Result},
+    error::Error,
     mode::Mode,
     msg::{Cmd, Msg},
     render::RenderFrame,
     text_buffer::TextBuffer,
 };
+
+use anyhow::Result;
 
 use winit::{dpi::PhysicalSize, event_loop::EventLoopProxy};
 
@@ -57,10 +59,10 @@ impl CommandBuffer {
                         .expect("sending load file command");
                     Ok(())
                 } else {
-                    Err(CommandError::MissingArg)
+                    Err(Error::MissingArg)
                 }
             }
-            Some(buffer) => Err(CommandError::UnknownCommand(buffer.to_owned())),
+            Some(buffer) => Err(Error::UnknownCommand(buffer.to_owned())),
             None => Ok(()),
         };
         self.buffer.clear();
@@ -75,7 +77,7 @@ impl CommandBuffer {
             cmd => self.buffer.handle_command(cmd)?,
         })
     }
-    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
+    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
         self.buffer.render(render_frame, window_size);
     }
 }

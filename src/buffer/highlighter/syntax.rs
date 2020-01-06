@@ -1,6 +1,7 @@
-use crate::error::{Error, Result};
+use crate::error::Error;
 use fancy_regex::Regex as FRegex;
 use regex::Regex;
+use anyhow::Result;
 
 #[derive(Debug, Clone)]
 pub struct Scope {
@@ -106,7 +107,7 @@ impl Match {
                         ))
                     }
                 } else {
-                    return Err(Error::BuildingSyntax);
+                    return Err(Error::BuildingSyntax.anyhow());
                 }
             } else if let Some(_pop) = map.get(&serde_yaml::Value::String("pop".to_string())) {
                 Some(MatchAction::Pop)
@@ -212,7 +213,7 @@ impl Syntax {
                     if let (Some(k), Some(v)) = (k.as_str(), v.as_sequence()) {
                         Ok((k.to_string(), Context::new(v, &variables, &mut anon_contexts)?))
                     } else {
-                        Err(Error::BuildingSyntax)
+                        Err(Error::BuildingSyntax.anyhow())
                     }
                 })
                 .collect::<HashMap<String, Context>>();
@@ -233,7 +234,7 @@ impl Syntax {
                 scope,
             })
         } else {
-            Err(Error::BuildingSyntax)
+            Err(Error::BuildingSyntax.anyhow())
         }
     }
 }

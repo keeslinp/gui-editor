@@ -24,15 +24,15 @@ impl Font {
         device: &mut wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: &TextureView,
-        size: &PhysicalSize,
+        size: &PhysicalSize<u32>,
     ) {
         self.glyphs
             .draw_queued(
                 device,
                 encoder,
                 target,
-                size.width.round() as u32,
-                size.height.round() as u32,
+                size.width,
+                size.height,
             )
             .expect("Draw font");
     }

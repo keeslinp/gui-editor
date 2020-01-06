@@ -1,8 +1,9 @@
 use crate::{
-    error::Result,
     msg::{Cmd, DeleteDirection, Direction},
     render::RenderFrame,
 };
+
+use anyhow::Result;
 
 use wgpu_glyph::{Scale, Section};
 use winit::dpi::PhysicalSize;
@@ -58,7 +59,7 @@ impl TextBuffer {
             _ => false,
         })
     }
-    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
+    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
         render_frame.queue_text(Section {
             text: &format!(":{}", self.buffer.as_str()),
             screen_position: (10., window_size.height as f32 - 30.),

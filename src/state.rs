@@ -1,11 +1,13 @@
 use crate::{
     buffer::{Buffer, BufferKey},
     command::CommandBuffer,
-    error::{Error, Result},
+    error::Error,
     mode::Mode,
     skim_buffer::SkimBuffer,
-    color_scheme,
+    color_scheme::ColorScheme,
 };
+
+use anyhow::Result;
 use slotmap::{SecondaryMap, SlotMap};
 
 pub struct State {
@@ -14,7 +16,7 @@ pub struct State {
     pub current_buffer: BufferKey,
     pub mode: Mode,
     pub command_buffer: CommandBuffer,
-    pub error: Option<Error>,
+    pub status: Option<String>,
     pub skim_buffer: SkimBuffer,
     pub color_scheme: ColorScheme,
 }
@@ -31,7 +33,7 @@ impl State {
             current_buffer,
             mode: Mode::Normal,
             command_buffer: CommandBuffer::default(),
-            error: None,
+            status: None,
             skim_buffer: SkimBuffer::default(),
             color_scheme: ColorScheme::build()?,
         })

@@ -24,7 +24,7 @@ mod color_scheme;
 
 use render::{RenderFrame, Renderer};
 
-use error::Result;
+use anyhow::Result;
 
 use state::State;
 
@@ -36,7 +36,7 @@ fn update_state(
     state: &mut State,
     msg: Msg,
     msg_sender: EventLoopProxy<Msg>,
-    window_size: PhysicalSize,
+    window_size: PhysicalSize<u32>,
 ) -> bool {
     match msg {
         Msg::Input(input_msg) => {
@@ -47,19 +47,19 @@ fn update_state(
             });
             false
         }
-        Msg::Cmd(Cmd::SetError(err)) => {
-            state.error = Some(err);
+        Msg::Cmd(Cmd::SetStatusText(status)) => {
+            state.status = Some(status);
             true
         }
         Msg::Cmd(cmd_msg) => {
             match handle_command(state, cmd_msg, msg_sender.clone(), window_size) {
                 Ok(should_render) => {
-                    state.error = None;
+                    state.status = None;
                     should_render
                 }
                 Err(err) => {
                     msg_sender
-                        .send_event(Msg::Cmd(Cmd::SetError(err)))
+                        .send_event(Msg::Cmd(Cmd::SetStatusText(err.to_string())))
                         .expect("setting error");
                     true
                 }
@@ -68,7 +68,7 @@ fn update_state(
     }
 }
 
-fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSize) {
+fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSize<u32>) {
     render_frame.clear();
     use mode::Mode::*;
     match state.mode {
@@ -81,9 +81,9 @@ fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSi
     if state.mode == mode::Mode::Command {
         state.command_buffer.render(render_frame, window_size);
     }
-    if let Some(ref error) = state.error {
+    if let Some(ref status) = state.status {
         render_frame.queue_text(Section {
-            text: &error.as_string(),
+            text: status.as_str(),
             screen_position: (10., window_size.height as f32 - 30.),
             color: [1., 0., 0., 1.],
             scale: Scale { x: 30., y: 30. },
@@ -111,7 +111,7 @@ fn main() -> Result<()> {
 
     let mut renderer = Renderer::on_window(&window);
 
-    let mut size = window.inner_size().to_physical(window.hidpi_factor());
+    let mut size = window.inner_size();
 
     // END OF SETUP
     let mut state = State::new()?;
@@ -128,7 +128,7 @@ fn main() -> Result<()> {
     // TODO (perf): Do some performance improvements on this main loop
     // If there are any serious problems it is better to find out now
     event_loop.run(move |event, _, control_flow| match event {
-        Event::EventsCleared => {
+        Event::MainEventsCleared => {
             if dirty {
                 window.request_redraw();
             }
@@ -144,12 +144,11 @@ fn main() -> Result<()> {
             event: winit::event::WindowEvent::Resized(new_size),
             ..
         } => {
-            size = new_size.to_physical(window.hidpi_factor());
+            size = new_size;
             renderer.update_size(size);
             window.request_redraw();
         }
-        Event::WindowEvent {
-            event: WindowEvent::RedrawRequested,
+        Event::RedrawRequested {
             ..
         } => {
             let mut render_frame = renderer.start_frame();

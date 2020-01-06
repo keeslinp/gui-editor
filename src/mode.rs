@@ -23,7 +23,7 @@ impl Mode {
             Mode::Skim => "Skim",
         }
     }
-    pub fn render(self, render_frame: &mut RenderFrame, window_size: PhysicalSize) {
+    pub fn render(self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
         let value = self.as_str();
         render_frame.queue_text(Section {
             text: value,

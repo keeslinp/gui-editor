@@ -1,20 +1,20 @@
 use crate::{
     buffer::Buffer,
-    error::Result,
     mode::Mode,
     msg::{Cmd, Msg},
     state::State,
 };
+use anyhow::Result;
 use winit::{dpi::PhysicalSize, event_loop::EventLoopProxy};
 
 pub fn handle_command(
     state: &mut State,
     cmd: Cmd,
     msg_sender: EventLoopProxy<Msg>,
-    window_size: PhysicalSize,
+    window_size: PhysicalSize<u32>,
 ) -> Result<bool> {
     Ok(match (state.mode, cmd) {
-        (_, Cmd::SetError(_err)) => {
+        (_, Cmd::SetStatusText(_text)) => {
             unreachable!();
         }
         (_, Cmd::ChangeMode(mode)) => {

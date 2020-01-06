@@ -1,9 +1,7 @@
-use crate::{
-    error::Result,
-    
-};
+use anyhow::Result;
 
 use serde::Deserialize;
+use std::collections::HashMap;
 
 pub struct Color {
     r: f32,
@@ -26,7 +24,7 @@ struct ColorSchemeRaw {
     author: String,
     variables: HashMap<String, String>,
     globals: HashMap<String, String>,
-    rules: Vec<String>,
+    rules: Vec<HashMap<String,String>>, // TODO: type this
 }
 
 pub struct ColorScheme {
@@ -34,7 +32,7 @@ pub struct ColorScheme {
 
 impl ColorScheme {
     pub fn build() -> Result<ColorScheme> {
-        let contents = include!("./colors.sublime-color-scheme");
+        let contents = include_str!("./colors.sublime-color-scheme");
         let raw: ColorSchemeRaw = serde_json::from_str(contents)?;
         unimplemented!();
     }

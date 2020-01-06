@@ -40,14 +40,14 @@ impl Renderer {
 
         let quad_pipeline = quad::Pipeline::new(&mut device);
 
-        let size = window.inner_size().to_physical(window.hidpi_factor());
+        let size = window.inner_size();
         let swap_chain = device.create_swap_chain(
             &surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
                 format: RENDER_FORMAT,
-                width: size.width.round() as u32,
-                height: size.height.round() as u32,
+                width: size.width,
+                height: size.height,
                 present_mode: wgpu::PresentMode::Vsync,
             },
         );
@@ -61,14 +61,14 @@ impl Renderer {
         }
     }
 
-    pub fn update_size(&mut self, size: PhysicalSize) {
+    pub fn update_size(&mut self, size: PhysicalSize<u32>) {
         self.swap_chain = self.device.create_swap_chain(
             &self.surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
                 format: RENDER_FORMAT,
-                width: size.width.round() as u32,
-                height: size.height.round() as u32,
+                width: size.width,
+                height: size.height,
                 present_mode: wgpu::PresentMode::Vsync,
             },
         );
@@ -128,7 +128,7 @@ impl<'a> RenderFrame<'a> {
             .push(quad::Quad::new(x_pos, y_pos, width, height));
     }
 
-    pub fn submit(mut self, size: &PhysicalSize) {
+    pub fn submit(mut self, size: &PhysicalSize<u32>) {
         self.font
             .draw(self.device, &mut self.encoder, &self.frame.view, size);
         use quad::{Mat4, Vec2, Vec3};
