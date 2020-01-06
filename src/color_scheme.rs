@@ -32,13 +32,13 @@ pub struct ColorScheme {}
 impl ColorScheme {
     pub fn build() -> Result<ColorScheme> {
         let contents = include_str!("./colors.sublime-color-scheme");
-        let raw: ColorSchemeRaw = serde_json::from_str(contents)?;
+        let _raw: ColorSchemeRaw = serde_json::from_str(contents)?;
         unimplemented!();
     }
 }
 
 impl From<ColorSchemeRaw> for ColorScheme {
-    fn from(raw: ColorSchemeRaw) -> ColorScheme {
+    fn from(_raw: ColorSchemeRaw) -> ColorScheme {
         unimplemented!();
     }
 }

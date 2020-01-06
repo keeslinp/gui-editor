@@ -2,7 +2,6 @@ use crate::{
     buffer::{Buffer, BufferKey},
     color_scheme::ColorScheme,
     command::CommandBuffer,
-    error::Error,
     mode::Mode,
     skim_buffer::SkimBuffer,
 };

@@ -1,5 +1,5 @@
 use super::syntax::{Context, Match, MatchAction, Scope, StackValue, Syntax};
-use crate::{error::Error, point::Point, render::RenderFrame};
+use crate::{point::Point, render::RenderFrame};
 use anyhow::Result;
 use core::ops::Range;
 use ropey::RopeSlice;
@@ -28,7 +28,7 @@ fn consume_next_match<'a>(
     contexts: &'a HashMap<String, Context>,
 ) -> (Option<&'a MatchAction>, Vec<ScopeMatch>) {
     if let Some(line) = slice.lines().next().and_then(|l| l.as_str()) {
-        if (line.trim() == "") {
+        if line.trim() == "" {
             return (
                 None,
                 vec![ScopeMatch {
@@ -46,7 +46,7 @@ fn consume_next_match<'a>(
         ) {
             if let Ok(Some(captures)) = m.regex.captures(line) {
                 let mut next_match = Vec::with_capacity(captures.len());
-                for c_index in ((if captures.len() == 1 { 0 } else { 1 })..captures.len()) {
+                for c_index in (if captures.len() == 1 { 0 } else { 1 })..captures.len() {
                     if let Some(c) = captures.get(c_index) {
                         next_match.push(ScopeMatch {
                             scope: m
@@ -109,7 +109,7 @@ impl Node {
         }
     }
     fn build(
-        prev: Option<Rc<Node>>,
+        _prev: Option<Rc<Node>>,
         slice: RopeSlice,
         contexts: &HashMap<String, Context>,
         anon_contexts: &[Context],

@@ -8,7 +8,7 @@ use crate::{
 use anyhow::Result;
 use ropey::Rope;
 use slotmap::DefaultKey;
-use wgpu_glyph::{Scale, Section};
+
 use winit::dpi::PhysicalSize;
 
 pub type BufferKey = DefaultKey;
@@ -134,16 +134,16 @@ impl Buffer {
     }
 
     pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
-        let visible_lines = get_visible_lines(window_size);
+        let _visible_lines = get_visible_lines(window_size);
         let line_len = self.rope.len_lines();
         let line_offset = log10(line_len);
         let line_offset_px = line_offset as f32 * 15.;
-        use wgpu_glyph::{HorizontalAlign, Layout};
+        
         let char_offset = self.rope.line_to_char(self.offset);
         let char_end = self.rope.len_chars();
         self.highlighter.render(
             render_frame,
-            (char_offset..char_end),
+            char_offset..char_end,
             self.rope.slice(..),
             30. + line_offset_px,
             self.offset as f32 * 25. - 10.,
