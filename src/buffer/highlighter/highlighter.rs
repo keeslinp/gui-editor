@@ -72,7 +72,9 @@ fn consume_next_match<'a>(
     char_offset: usize,
     contexts: &'a HashMap<String, Context>,
 ) -> (Option<&'a MatchAction>, Vec<ScopeMatch>) {
-    if let Some(line) = slice.lines().next().and_then(|l| l.as_str()) {
+    use std::borrow::Cow;
+    if let Some(line_slice) = slice.lines().next() {
+        let line: Cow<str> = line_slice.into();
         if line.trim() == "" {
             return (
                 None,
@@ -84,7 +86,7 @@ fn consume_next_match<'a>(
         }
         let mut first_match: Option<(&Match, Vec<ScopeMatch>)> = None;
         for m in ContextMatchIter::new(context, contexts) {
-            if let Ok(Some(captures)) = m.regex.captures(line) {
+            if let Ok(Some(captures)) = m.regex.captures(&line) {
                 let backup_scope = m.scope.clone().or(context.meta_scope.clone());
                 let mut next_match = Vec::with_capacity(captures.len() + 1);
                 if let Some(ref captured_scopes) = m.captures {
