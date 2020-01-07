@@ -137,10 +137,35 @@ impl Match {
 }
 
 #[derive(Debug)]
+pub enum ContextElement {
+    Include(String),
+    Match(Match),
+}
+
+impl ContextElement {
+    fn new(
+        map: &serde_yaml::Mapping,
+        variables: &HashMap<String, String>,
+        anon_contexts: &mut Vec<Context>,
+    ) -> Result<ContextElement> {
+        if map.contains_key(&serde_yaml::Value::String("match".to_string())) {
+            Match::new(map, variables, anon_contexts).map(|m| ContextElement::Match(m))
+        } else if let Some(include) = map.get(&serde_yaml::Value::String("include".to_string())) {
+            if let Some(val) = include.as_str() {
+                Ok(ContextElement::Include(val.to_string()))
+            } else {
+                Err(Error::BuildingSyntax.anyhow())
+            }
+        } else {
+            Err(Error::BuildingSyntax.anyhow())
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Context {
-    pub matches: Vec<Match>,
+    pub elements: Vec<ContextElement>,
     pub meta_scope: Option<Scope>,
-    pub includes: Vec<String>,
 }
 
 impl Context {
@@ -149,10 +174,10 @@ impl Context {
         variables: &HashMap<String, String>,
         anon_contexts: &mut Vec<Context>,
     ) -> Result<Context> {
-        let matches = value
+        let elements = value
             .iter()
             .flat_map(|v| v.as_mapping())
-            .flat_map(|m| Match::new(m, &variables, anon_contexts))
+            .flat_map(|m| ContextElement::new(m, &variables, anon_contexts))
             .collect();
         let meta_scope = value
             .iter()
@@ -160,17 +185,9 @@ impl Context {
             .flat_map(|meta_scope| meta_scope.as_str())
             .map(|s| s.to_string().into())
             .next();
-        let includes = value
-            .iter()
-            .flat_map(|v| v.as_mapping())
-            .flat_map(|i| i.get(&serde_yaml::Value::String("include".to_string())))
-            .flat_map(|v| v.as_str())
-            .map(|s| s.to_string())
-            .collect();
         Ok(Context {
-            matches,
+            elements,
             meta_scope,
-            includes,
         })
     }
 }

@@ -1,4 +1,4 @@
-use super::syntax::{Context, Match, MatchAction, Scope, StackValue, Syntax};
+use super::syntax::{Context, Match, MatchAction, Scope, StackValue, Syntax, ContextElement};
 use crate::{color_scheme::ColorScheme, point::Point, render::RenderFrame};
 use anyhow::Result;
 use core::ops::Range;
@@ -22,17 +22,15 @@ struct ScopeMatch {
 }
 
 struct ContextMatchIter<'a> {
-    stack: Vec<String>,
-    matches: Option<&'a [Match]>,
+    stack: Vec<&'a[ContextElement]>,
     contexts: &'a HashMap<String, Context>,
 }
 
 impl<'a> ContextMatchIter<'a> {
     fn new(root_context: &'a Context, contexts: &'a HashMap<String, Context>) -> ContextMatchIter<'a> {
         ContextMatchIter {
-            stack: root_context.includes.clone(),
+            stack: vec![root_context.elements.as_slice()],
             contexts,
-            matches: Some(root_context.matches.as_slice()),
         }
     }
 }
@@ -40,29 +38,29 @@ impl<'a> ContextMatchIter<'a> {
 impl<'a> Iterator for ContextMatchIter<'a> {
     type Item = &'a Match;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.matches {
-            Some(matches) if matches.len() == 0 => {
-                self.matches = None;
+        if self.stack.len() == 0 {
+            None
+        } else if self.stack[self.stack.len() - 1].len() == 0 {
+            self.stack.pop();
+            self.next()
+        } else {
+            let last_el = self.stack.len() - 1;
+            if let Some((element, rest)) = self.stack[last_el].split_first() {
+                self.stack[last_el] = rest;
+                match element {
+                    ContextElement::Match(ref m) => Some(m),
+                    ContextElement::Include(i) => {
+                        if let Some(ctx) = self.contexts.get(i) {
+                            self.stack.push(ctx.elements.as_slice());
+                            self.next()
+                        } else {
+                            eprintln!("Bad include: {}", i);
+                            self.next()
+                        }
+                    }
+                }
+            } else {
                 self.next()
-            }
-            Some(matches) => {
-                if let Some((first, rest)) = matches.split_first() {
-                    self.matches = Some(rest);
-                    Some(first)
-                } else {
-                    None
-                }
-            },
-            None => {
-                if let Some(context) = self.stack.pop().and_then(|next_context_name| {
-                    self.contexts.get(next_context_name.as_str())
-                }) {
-                    self.matches = Some(context.matches.as_slice());
-                    self.stack.extend_from_slice(context.includes.as_slice());
-                    self.next()
-                } else {
-                    None
-                }
             }
         }
     }
