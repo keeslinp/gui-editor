@@ -72,9 +72,11 @@ fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSi
     render_frame.clear();
     use mode::Mode::*;
     match state.mode {
-        Normal | Insert | Command | Jump => {
-            state.buffers[state.current_buffer].render(render_frame, window_size)
-        }
+        Normal | Insert | Command | Jump => state.buffers[state.current_buffer].render(
+            render_frame,
+            window_size,
+            &state.color_scheme,
+        ),
         Skim => state.skim_buffer.render(render_frame, window_size),
     }
     state.mode.render(render_frame, window_size);

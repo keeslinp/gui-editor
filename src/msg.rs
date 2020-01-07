@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::{mode::Mode};
+use crate::mode::Mode;
 use winit::event::VirtualKeyCode;
 
 #[derive(PartialEq, Debug)]

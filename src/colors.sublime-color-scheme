@@ -178,6 +178,11 @@
             "foreground": "var(red)"
         },
         {
+            "name": "Macro",
+            "scope": "support.macro",
+            "foreground": "var(red)"
+        },
+        {
             "name": "User-defined constant",
             "scope": "constant.character, constant.other",
             "foreground": "var(orange)"

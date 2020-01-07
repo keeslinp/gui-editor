@@ -1,5 +1,5 @@
 use super::syntax::{Context, Match, MatchAction, Scope, StackValue, Syntax};
-use crate::{point::Point, render::RenderFrame};
+use crate::{color_scheme::ColorScheme, point::Point, render::RenderFrame};
 use anyhow::Result;
 use core::ops::Range;
 use ropey::RopeSlice;
@@ -21,6 +21,53 @@ struct ScopeMatch {
     char_range: Range<usize>,
 }
 
+struct ContextMatchIter<'a> {
+    stack: Vec<String>,
+    matches: Option<&'a [Match]>,
+    contexts: &'a HashMap<String, Context>,
+}
+
+impl<'a> ContextMatchIter<'a> {
+    fn new(root_context: &'a Context, contexts: &'a HashMap<String, Context>) -> ContextMatchIter<'a> {
+        ContextMatchIter {
+            stack: root_context.includes.clone(),
+            contexts,
+            matches: Some(root_context.matches.as_slice()),
+        }
+    }
+}
+
+impl<'a> Iterator for ContextMatchIter<'a> {
+    type Item = &'a Match;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.matches {
+            Some(matches) if matches.len() == 0 => {
+                self.matches = None;
+                self.next()
+            }
+            Some(matches) => {
+                if let Some((first, rest)) = matches.split_first() {
+                    self.matches = Some(rest);
+                    Some(first)
+                } else {
+                    None
+                }
+            },
+            None => {
+                if let Some(context) = self.stack.pop().and_then(|next_context_name| {
+                    self.contexts.get(next_context_name.as_str())
+                }) {
+                    self.matches = Some(context.matches.as_slice());
+                    self.stack.extend_from_slice(context.includes.as_slice());
+                    self.next()
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
 fn consume_next_match<'a>(
     slice: RopeSlice,
     context: &'a Context,
@@ -38,16 +85,27 @@ fn consume_next_match<'a>(
             );
         }
         let mut first_match: Option<(&Match, Vec<ScopeMatch>)> = None;
-        for m in context.matches.iter().chain(
-            context
-                .includes
-                .iter()
-                .flat_map(|include| contexts.get(include).unwrap().matches.iter()),
-        ) {
+        for m in ContextMatchIter::new(context, contexts) {
             if let Ok(Some(captures)) = m.regex.captures(line) {
-                let mut next_match = Vec::with_capacity(captures.len());
-                for c_index in (if captures.len() == 1 { 0 } else { 1 })..captures.len() {
+                let backup_scope = m.scope.clone().or(context.meta_scope.clone());
+                dbg!(&captures, &m);
+                let mut next_match = Vec::with_capacity(captures.len() + 1);
+                if let (Some(whole_start), Some(first_start), Some(_)) = (captures.get(0).map(|c| c.start()), captures.get(1).map(|c| c.start()), m.captures.as_ref()) {
+                    if first_start > whole_start {
+                        next_match.push(ScopeMatch {
+                            scope: backup_scope,
+                            char_range: (char_offset + whole_start)..(char_offset + first_start),
+                        });
+                    }
+                } else if let Some(whole_match) = captures.get(0) {
+                    next_match.push(ScopeMatch {
+                        scope: backup_scope,
+                        char_range: (char_offset + whole_match.start())..(char_offset + whole_match.end()),
+                    });
+                }
+                for c_index in 1..std::cmp::min(captures.len(), m.captures.as_ref().map(|c| c.len()).unwrap_or(1) + 1) {
                     if let Some(c) = captures.get(c_index) {
+                        dbg!(c, c.as_str());
                         next_match.push(ScopeMatch {
                             scope: m
                                 .captures
@@ -65,8 +123,11 @@ fn consume_next_match<'a>(
                         });
                     }
                 }
+                dbg!(&next_match, &first_match, &line[next_match[0].char_range.start..next_match[0].char_range.end]);
                 if let Some((_, ref scope_matches)) = first_match {
                     if scope_matches[0].char_range.start > next_match[0].char_range.start {
+                        first_match = Some((&m, next_match));
+                    } else if scope_matches[0].char_range.start == next_match[0].char_range.start && scope_matches[0].char_range.end < next_match[0].char_range.end {
                         first_match = Some((&m, next_match));
                     }
                 } else {
@@ -74,17 +135,14 @@ fn consume_next_match<'a>(
                 }
             }
         }
-        if let Some((m, mut scope_matches)) = first_match {
+        if let Some((m, mut scope_matches)) = dbg!(first_match) {
             if scope_matches[0].char_range.start > 0 {
-                let mut all_matches = vec![ScopeMatch {
-                    scope: None,
+                scope_matches.insert(0, ScopeMatch {
+                    scope: context.meta_scope.clone(),
                     char_range: char_offset..(scope_matches[0].char_range.start),
-                }];
-                all_matches.append(&mut scope_matches);
-                (m.action.as_ref(), all_matches)
-            } else {
-                (m.action.as_ref(), scope_matches)
+                });
             }
+            (m.action.as_ref(), scope_matches)
         } else {
             (
                 None,
@@ -182,21 +240,10 @@ pub struct Highlighter {
 
 const RUST_SYNTAX: &'static str = include_str!("./Rust.sublime-syntax");
 
-fn get_color_for_scope(scope: &Option<Scope>) -> [f32; 4] {
-    match scope.as_ref().map(|scope| scope.name.as_str()) {
-        Some("keyword.other.rust") | Some("storage.modifier.rust") => [0., 0., 1., 1.],
-        Some("storage.type.module.rust") => [0., 1., 0., 1.],
-        Some("string.quoted.double.rust") => [1., 0., 0., 1.],
-        Some("support.macro.rust") | Some("punctuation.definition.annotation.rust") => {
-            [1., 0., 0., 1.]
-        }
-        _ => [0.514, 0.58, 0.588, 1.],
-    }
-}
-
 impl Highlighter {
     pub fn new() -> Result<Self> {
         let syntax: Syntax = Syntax::new(serde_yaml::from_str(RUST_SYNTAX)?)?;
+        &syntax.contexts.get("main");
         Ok(Highlighter {
             syntax: syntax,
             tail: None,
@@ -219,6 +266,7 @@ impl Highlighter {
         slice: RopeSlice,
         start_x: f32,
         y_offset: f32,
+        color_scheme: &ColorScheme,
     ) {
         let mut current_node = self.tail.as_ref();
         loop {
@@ -243,7 +291,11 @@ impl Highlighter {
                         start_x + (point.x as f32 * 15.),
                         (point.y as f32 * 25.) - y_offset,
                     ),
-                    color: get_color_for_scope(&node.scope),
+                    color: node
+                        .scope
+                        .as_ref()
+                        .and_then(|scope| color_scheme.get_fg_color_for_scope(scope))
+                        .unwrap_or([1., 1., 1., 1.]),
                     scale: Scale { x: 30., y: 30. },
                     ..Section::default()
                 });

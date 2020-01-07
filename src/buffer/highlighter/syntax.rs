@@ -64,13 +64,23 @@ impl Match {
             .get(&serde_yaml::Value::String("match".to_string()))
             .and_then(|v| v.as_str())
             .map(|s| {
-                VAR_RE.replace_all(s, |captures: &regex::Captures| {
-                    dbg!(captures)
-                        .get(1)
-                        .map(|c| c.as_str())
-                        .and_then(|s| variables.get(s))
-                        .expect("failed to replace variable")
-                })
+                let mut stable;
+                let mut temp = s.to_owned();
+                loop {
+                    stable = true;
+                    temp = VAR_RE.replace_all(temp.as_str(), |captures: &regex::Captures| {
+                        stable = false;
+                        captures
+                            .get(1)
+                            .map(|c| c.as_str())
+                            .and_then(|s| variables.get(s))
+                            .expect("failed to replace variable")
+                    }).into_owned();
+                    if stable {
+                        break;
+                    }
+                }
+                temp
             })
             .ok_or(Error::BuildingSyntax)
             .and_then(|s| FRegex::new(s.as_ref()).map_err(|e| e.into()))?;

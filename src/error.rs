@@ -8,8 +8,8 @@ pub enum Error {
     UnknownCommand(String),
     #[error("Failed to parse syntax")]
     BuildingSyntax,
-    #[error("Something went wrong highlighting")]
-    Highlighting,
+    // #[error("Something went wrong highlighting")]
+    // Highlighting,
 }
 
 impl Error {

@@ -1,4 +1,4 @@
 mod highlighter;
-mod syntax;
+pub mod syntax;
 
 pub use highlighter::Highlighter;
