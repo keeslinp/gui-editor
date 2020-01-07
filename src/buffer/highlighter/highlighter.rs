@@ -88,54 +88,52 @@ fn consume_next_match<'a>(
         for m in ContextMatchIter::new(context, contexts) {
             if let Ok(Some(captures)) = m.regex.captures(line) {
                 let backup_scope = m.scope.clone().or(context.meta_scope.clone());
-                dbg!(&captures, &m);
                 let mut next_match = Vec::with_capacity(captures.len() + 1);
-                if let (Some(whole_start), Some(first_start), Some(_)) = (captures.get(0).map(|c| c.start()), captures.get(1).map(|c| c.start()), m.captures.as_ref()) {
-                    if first_start > whole_start {
-                        next_match.push(ScopeMatch {
-                            scope: backup_scope,
-                            char_range: (char_offset + whole_start)..(char_offset + first_start),
-                        });
+                if let Some(ref captured_scopes) = m.captures {
+                    for (scope, capture) in captured_scopes.iter().zip(captures.iter().skip(1)) {
+                        if let Some(capture) = capture {
+                            next_match.push(ScopeMatch {
+                                scope: Some(scope.clone()),
+                                char_range: (char_offset + capture.start())..(char_offset + capture.end()),
+                            });
+                        }
                     }
-                } else if let Some(whole_match) = captures.get(0) {
-                    next_match.push(ScopeMatch {
+                }
+                // Fill in the gaps
+                let filled_match = if next_match.len() > 0 {
+                    let mut buffer = Vec::with_capacity(next_match.len() + 1);
+                    let mut cursor = char_offset;
+                    for group in next_match.into_iter() {
+                        if group.char_range.start > cursor {
+                            buffer.push(ScopeMatch {
+                                scope: backup_scope.clone(),
+                                char_range: cursor..group.char_range.start,
+                            });
+                        }
+                        cursor = group.char_range.start;
+                        buffer.push(group);
+                    }
+                    buffer
+                } else if let Some(whole) = captures.get(0) {
+                    vec![ScopeMatch {
                         scope: backup_scope,
-                        char_range: (char_offset + whole_match.start())..(char_offset + whole_match.end()),
-                    });
-                }
-                for c_index in 1..std::cmp::min(captures.len(), m.captures.as_ref().map(|c| c.len()).unwrap_or(1) + 1) {
-                    if let Some(c) = captures.get(c_index) {
-                        dbg!(c, c.as_str());
-                        next_match.push(ScopeMatch {
-                            scope: m
-                                .captures
-                                .as_ref()
-                                .and_then(|scopes| {
-                                    if c_index > 0 {
-                                        scopes.get(c_index - 1).cloned()
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .or(m.scope.clone())
-                                .or(context.meta_scope.clone()), // TODO: Figure out what the hell to do here
-                            char_range: (char_offset + c.start()..(char_offset + c.end())),
-                        });
-                    }
-                }
-                dbg!(&next_match, &first_match, &line[next_match[0].char_range.start..next_match[0].char_range.end]);
+                        char_range: (char_offset + whole.start())..(char_offset + whole.end()),
+                    }]
+                } else {
+                    unreachable!(); // I hope?
+                };
                 if let Some((_, ref scope_matches)) = first_match {
-                    if scope_matches[0].char_range.start > next_match[0].char_range.start {
-                        first_match = Some((&m, next_match));
-                    } else if scope_matches[0].char_range.start == next_match[0].char_range.start && scope_matches[0].char_range.end < next_match[0].char_range.end {
-                        first_match = Some((&m, next_match));
+                    if scope_matches[0].char_range.start > filled_match[0].char_range.start {
+                        first_match = Some((&m, filled_match));
+                    } else if scope_matches[0].char_range.start == filled_match[0].char_range.start && (scope_matches[scope_matches.len() - 1].char_range.end < filled_match[filled_match.len() - 1].char_range.end || scope_matches[0].scope.is_none()) {
+                        first_match = Some((&m, filled_match));
                     }
                 } else {
-                    first_match = Some((&m, next_match));
+                    first_match = Some((&m, filled_match));
                 }
             }
         }
-        if let Some((m, mut scope_matches)) = dbg!(first_match) {
+        if let Some((m, mut scope_matches)) = first_match {
             if scope_matches[0].char_range.start > 0 {
                 scope_matches.insert(0, ScopeMatch {
                     scope: context.meta_scope.clone(),

@@ -40,7 +40,6 @@ impl ColorScheme {
     }
 
     pub fn get_fg_color_for_scope(&self, scope: &Scope) -> Option<[f32;4]> {
-        dbg!(&scope.name);
         let mut max_depth: usize = 0;
         let mut rule_match: Option<[f32;4]> = None;
         for rule in self.rules.iter() {
