@@ -68,14 +68,16 @@ impl Match {
                 let mut temp = s.to_owned();
                 loop {
                     stable = true;
-                    temp = VAR_RE.replace_all(temp.as_str(), |captures: &regex::Captures| {
-                        stable = false;
-                        captures
-                            .get(1)
-                            .map(|c| c.as_str())
-                            .and_then(|s| variables.get(s))
-                            .expect("failed to replace variable")
-                    }).into_owned();
+                    temp = VAR_RE
+                        .replace_all(temp.as_str(), |captures: &regex::Captures| {
+                            stable = false;
+                            captures
+                                .get(1)
+                                .map(|c| c.as_str())
+                                .and_then(|s| variables.get(s))
+                                .expect("failed to replace variable")
+                        })
+                        .into_owned();
                     if stable {
                         break;
                     }

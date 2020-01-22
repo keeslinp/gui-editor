@@ -1,4 +1,4 @@
-use super::syntax::{Context, Match, MatchAction, Scope, StackValue, Syntax, ContextElement};
+use super::syntax::{Context, ContextElement, Match, MatchAction, Scope, StackValue, Syntax};
 use crate::{color_scheme::ColorScheme, point::Point, render::RenderFrame};
 use anyhow::Result;
 use core::ops::Range;
@@ -22,12 +22,15 @@ struct ScopeMatch {
 }
 
 struct ContextMatchIter<'a> {
-    stack: Vec<&'a[ContextElement]>,
+    stack: Vec<&'a [ContextElement]>,
     contexts: &'a HashMap<String, Context>,
 }
 
 impl<'a> ContextMatchIter<'a> {
-    fn new(root_context: &'a Context, contexts: &'a HashMap<String, Context>) -> ContextMatchIter<'a> {
+    fn new(
+        root_context: &'a Context,
+        contexts: &'a HashMap<String, Context>,
+    ) -> ContextMatchIter<'a> {
         ContextMatchIter {
             stack: vec![root_context.elements.as_slice()],
             contexts,
@@ -66,6 +69,13 @@ impl<'a> Iterator for ContextMatchIter<'a> {
     }
 }
 
+#[derive(Debug)]
+struct PotentialMatch<'a> {
+    range: Range<usize>,
+    matches: Vec<ScopeMatch>,
+    m: &'a Match,
+}
+
 fn consume_next_match<'a>(
     slice: RopeSlice,
     context: &'a Context,
@@ -84,9 +94,13 @@ fn consume_next_match<'a>(
                 }],
             );
         }
-        let mut first_match: Option<(&Match, Vec<ScopeMatch>)> = None;
+        let mut first_match: Option<PotentialMatch> = None;
         for m in ContextMatchIter::new(context, contexts) {
             if let Ok(Some(captures)) = m.regex.captures(&line) {
+                let total_range = captures
+                    .get(0)
+                    .map(|c| c.start()..c.end())
+                    .unwrap_or(char_offset..char_offset);
                 let backup_scope = m.scope.clone().or(context.meta_scope.clone());
                 let mut next_match = Vec::with_capacity(captures.len() + 1);
                 if let Some(ref captured_scopes) = m.captures {
@@ -94,7 +108,8 @@ fn consume_next_match<'a>(
                         if let Some(capture) = capture {
                             next_match.push(ScopeMatch {
                                 scope: Some(scope.clone()),
-                                char_range: (char_offset + capture.start())..(char_offset + capture.end()),
+                                char_range: (char_offset + capture.start())
+                                    ..(char_offset + capture.end()),
                             });
                         }
                     }
@@ -102,7 +117,7 @@ fn consume_next_match<'a>(
                 // Fill in the gaps
                 let filled_match = if next_match.len() > 0 {
                     let mut buffer = Vec::with_capacity(next_match.len() + 1);
-                    let mut cursor = char_offset;
+                    let mut cursor = char_offset; //captures.get(0).map(|c| c.start()).unwrap_or(char_offset);
                     for group in next_match.into_iter() {
                         if group.char_range.start > cursor {
                             buffer.push(ScopeMatch {
@@ -122,25 +137,49 @@ fn consume_next_match<'a>(
                 } else {
                     unreachable!(); // I hope?
                 };
-                if let Some((_, ref scope_matches)) = first_match {
-                    if scope_matches[0].char_range.start > filled_match[0].char_range.start {
-                        first_match = Some((&m, filled_match));
-                    } else if scope_matches[0].char_range.start == filled_match[0].char_range.start && (scope_matches[scope_matches.len() - 1].char_range.end < filled_match[filled_match.len() - 1].char_range.end || scope_matches[0].scope.is_none()) {
-                        first_match = Some((&m, filled_match));
+                if let Some(PotentialMatch {
+                    ref matches,
+                    ref range,
+                    ..
+                }) = first_match
+                {
+                    if range.start > total_range.start {
+                        first_match = Some(PotentialMatch {
+                            m: &m,
+                            matches: filled_match,
+                            range: total_range,
+                        });
+                    } else if range.start == total_range.start
+                        && (range.end < total_range.end || matches[0].scope.is_none())
+                    {
+                        first_match = Some(PotentialMatch {
+                            m: &m,
+                            matches: filled_match,
+                            range: total_range,
+                        });
                     }
                 } else {
-                    first_match = Some((&m, filled_match));
+                    first_match = Some(PotentialMatch {
+                        m: &m,
+                        matches: filled_match,
+                        range: total_range,
+                    });
                 }
             }
         }
-        if let Some((m, mut scope_matches)) = first_match {
-            if scope_matches[0].char_range.start > 0 {
-                scope_matches.insert(0, ScopeMatch {
-                    scope: context.meta_scope.clone(),
-                    char_range: char_offset..(scope_matches[0].char_range.start),
-                });
+
+        // Fill in characters we skipped over with the default scope
+        if let Some(PotentialMatch { m, mut matches, .. }) = first_match {
+            if matches[0].char_range.start > 0 {
+                matches.insert(
+                    0,
+                    ScopeMatch {
+                        scope: context.meta_scope.clone(),
+                        char_range: char_offset..(matches[0].char_range.start),
+                    },
+                );
             }
-            (m.action.as_ref(), scope_matches)
+            (m.action.as_ref(), matches)
         } else {
             (
                 None,

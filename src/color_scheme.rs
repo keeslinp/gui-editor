@@ -39,9 +39,9 @@ impl ColorScheme {
         raw.try_into()
     }
 
-    pub fn get_fg_color_for_scope(&self, scope: &Scope) -> Option<[f32;4]> {
+    pub fn get_fg_color_for_scope(&self, scope: &Scope) -> Option<[f32; 4]> {
         let mut max_depth: usize = 0;
-        let mut rule_match: Option<[f32;4]> = None;
+        let mut rule_match: Option<[f32; 4]> = None;
         for rule in self.rules.iter() {
             for rule_scope in rule.scopes.iter() {
                 if rule_scope.len() > max_depth {
@@ -97,9 +97,11 @@ impl TryFrom<ColorSchemeRaw> for ColorScheme {
             map
         };
         Ok(ColorScheme {
-            rules: raw.rules.into_iter().map(|raw_rule| {
-                build_rule(&raw_rule, &variables)
-            }).collect()
+            rules: raw
+                .rules
+                .into_iter()
+                .map(|raw_rule| build_rule(&raw_rule, &variables))
+                .collect(),
         })
     }
 }
