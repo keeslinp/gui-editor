@@ -220,7 +220,7 @@ impl Node {
             if end_cursor >= slice.len_chars() {
                 break;
             }
-            if stack.len() > 20 {
+            if stack.len() > 50 {
                 panic!("Stack is overflowing");
             }
             let (action, scope_matches) = consume_next_match(
