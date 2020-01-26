@@ -87,15 +87,6 @@ fn consume_next_match<'a>(
 ) -> (Option<&'a MatchAction>, Vec<ScopeMatch>) {
     if let Some(line_slice) = slice.lines().next() {
         let line: Cow<str> = line_slice.into();
-        if line.trim() == "" {
-            return (
-                None,
-                vec![ScopeMatch {
-                    scope: None,
-                    char_range: char_offset..(char_offset + line.len()),
-                }],
-            );
-        }
         let mut first_match: Option<PotentialMatch> = None;
         for m in ContextMatchIter::new(context, contexts) {
             if let Ok(Some(captures)) = m.regex.captures(&line) {
@@ -140,7 +131,6 @@ fn consume_next_match<'a>(
                     unreachable!(); // I hope?
                 };
                 if let Some(PotentialMatch {
-                    ref matches,
                     ref range,
                     ..
                 }) = first_match
@@ -152,7 +142,7 @@ fn consume_next_match<'a>(
                             range: total_range,
                         });
                     } else if range.start == total_range.start
-                        && (range.end < total_range.end || matches[0].scope.is_none())
+                        && range.end < total_range.end
                     {
                         first_match = Some(PotentialMatch {
                             m: &m,
@@ -197,82 +187,13 @@ fn consume_next_match<'a>(
 }
 
 impl Node {
-    fn from_scope_match(scope_match: ScopeMatch, stack: &[StackValue]) -> Node {
+    fn from_scope_match(scope_match: ScopeMatch, stack: &[StackValue], prev: Option<Rc<Node>>) -> Node {
         Node {
-            prev: None,
+            prev,
             context_stack: stack.to_vec(),
             scope: scope_match.scope,
             char_range: scope_match.char_range,
         }
-    }
-    fn build(
-        prev: Option<Rc<Node>>,
-        slice: RopeSlice,
-        contexts: &HashMap<String, Context>,
-        anon_contexts: &[Context],
-    ) -> Option<Rc<Node>> {
-        let mut last_node: Option<Rc<Node>> = prev;
-        let mut stack = vec![StackValue::Name("main".to_owned())];
-        let mut end_cursor = last_node.as_ref().map(|n| n.char_range.end).unwrap_or(0);
-        loop {
-            flame::start("node::loop::iter");
-            let current_context = match stack[stack.len() - 1] {
-                StackValue::Name(ref name) => &contexts[name.as_str()],
-                StackValue::Anon(ref index) => &anon_contexts[*index],
-            };
-            if end_cursor >= slice.len_chars() {
-                flame::end("node::loop::iter");
-                break;
-            }
-            if stack.len() > 50 {
-                panic!("Stack is overflowing");
-            }
-            let (action, scope_matches) = consume_next_match(
-                slice.slice(end_cursor..),
-                current_context,
-                end_cursor,
-                contexts,
-            );
-            if scope_matches.len() > 0 {
-                end_cursor = scope_matches[0].char_range.end;
-                for scope_match in scope_matches {
-                    if scope_match.char_range.end > end_cursor {
-                        end_cursor = scope_match.char_range.end
-                    }
-                    last_node = Some(Rc::new(
-                        Node::from_scope_match(scope_match, stack.as_slice()).set_prev(last_node),
-                    ));
-                }
-            } else {
-                flame::end("node::loop::iter");
-                break;
-            }
-            match action {
-                Some(MatchAction::Push(stack_entry)) => {
-                    stack.push(stack_entry.clone());
-                }
-                Some(MatchAction::PushList(entries)) => {
-                    for entry in entries {
-                        stack.push(entry.clone());
-                    }
-                }
-                Some(MatchAction::Pop) => {
-                    stack.pop();
-                }
-                Some(MatchAction::Set(stack_entry)) => {
-                    stack.pop();
-                    stack.push(stack_entry.clone());
-                }
-                None => {}
-            }
-            flame::end("node::loop::iter");
-        }
-        last_node
-    }
-
-    fn set_prev(mut self, prev: Option<Rc<Node>>) -> Node {
-        self.prev = prev;
-        self
     }
 }
 
@@ -308,12 +229,65 @@ impl Highlighter {
 
     #[flame("highlighter")]
     pub fn parse(&mut self, slice: RopeSlice) {
-        self.tail = Node::build(
-            self.tail.clone(),
-            slice,
-            &self.syntax.contexts,
-            self.syntax.anon_contexts.as_slice(),
-        );
+        // Only continues from previous tail's end point
+        // Need to mark dirty first if there are changes
+        let mut stack = self.tail.as_ref().map(|n| n.context_stack.clone()).unwrap_or_else(|| vec![StackValue::Name("main".to_owned())]);
+        let mut end_cursor = self.tail.as_ref().map(|n| n.char_range.end).unwrap_or(0);
+        let contexts = &self.syntax.contexts;
+        let anon_contexts = self.syntax.anon_contexts.as_slice();
+        loop {
+            flame::start("node::loop::iter");
+            let current_context = match stack[stack.len() - 1] {
+                StackValue::Name(ref name) => &contexts[name.as_str()],
+                StackValue::Anon(ref index) => &anon_contexts[*index],
+            };
+            if end_cursor >= slice.len_chars() {
+                flame::end("node::loop::iter");
+                break;
+            }
+            if stack.len() > 50 {
+                panic!("Stack is overflowing");
+            }
+            let (action, scope_matches) = consume_next_match(
+                slice.slice(end_cursor..),
+                current_context,
+                end_cursor,
+                contexts,
+            );
+            if scope_matches.len() > 0 {
+                end_cursor = scope_matches[0].char_range.end;
+                for scope_match in scope_matches {
+                    if scope_match.char_range.end > end_cursor {
+                        end_cursor = scope_match.char_range.end
+                    }
+                    self.tail = Some(Rc::new(
+                        Node::from_scope_match(scope_match, stack.as_slice(), self.tail.clone()),
+                    ));
+                }
+            } else {
+                flame::end("node::loop::iter");
+                break;
+            }
+            match action {
+                Some(MatchAction::Push(stack_entry)) => {
+                    stack.push(stack_entry.clone());
+                }
+                Some(MatchAction::PushList(entries)) => {
+                    for entry in entries {
+                        stack.push(entry.clone());
+                    }
+                }
+                Some(MatchAction::Pop) => {
+                    stack.pop();
+                }
+                Some(MatchAction::Set(stack_entry)) => {
+                    stack.pop();
+                    stack.push(stack_entry.clone());
+                }
+                None => {}
+            }
+            flame::end("node::loop::iter");
+        }
     }
 
     #[flame("highlighter")]

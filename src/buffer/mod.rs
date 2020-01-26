@@ -78,9 +78,13 @@ impl Buffer {
         }
     }
 
+    fn mark_dirty(&mut self) {
+        self.highlighter.mark_dirty(self.rope.line_to_char(std::cmp::max(1, self.cursor.row()) - 1));
+    }
+
     pub fn insert_char(&mut self, c: char, should_step: bool, window_size: PhysicalSize<u32>) {
+        self.mark_dirty();
         let index = self.cursor.index(&self.rope.slice(..));
-        self.highlighter.mark_dirty(index);
         match c {
             '\t' => {
                 self.rope
@@ -118,8 +122,8 @@ impl Buffer {
     }
 
     pub fn delete_char(&mut self, direction: DeleteDirection, window_size: PhysicalSize<u32>) {
+        self.mark_dirty();
         let char_index = self.cursor.index(&self.rope.slice(..));
-        self.highlighter.mark_dirty(char_index);
         match direction {
             DeleteDirection::Before => {
                 if char_index > 0 {
