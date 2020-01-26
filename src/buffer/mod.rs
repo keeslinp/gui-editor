@@ -113,7 +113,7 @@ impl Buffer {
                 self.offset = self.cursor.row() - visible_lines + 1;
             }
         }
-        let last_char_index = self.rope.line_to_char(self.offset + visible_lines);
+        let last_char_index = self.rope.line_to_char(std::cmp::min(self.offset + visible_lines, self.rope.len_lines()));
         self.highlighter.parse(self.rope.slice(..last_char_index));
     }
 
