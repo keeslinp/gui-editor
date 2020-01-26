@@ -95,15 +95,23 @@ fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSi
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "example", about = "An example of StructOpt usage.")]
+#[structopt(name = "editor", about = "Simple Modal Editor with speed and efficiency as core goals")]
 struct Opt {
     #[structopt(parse(from_os_str))]
     input: Option<std::path::PathBuf>,
+    #[structopt(short, long)]
+    perf: bool,
+
+    #[structopt(long)]
+    single_frame: bool,
 }
 
 fn main() -> Result<()> {
     let opt = Opt::from_args();
+    let perf = opt.perf;
+    let single_frame = opt.single_frame;
 
+    flame::start("window setup");
     let event_loop: EventLoop<Msg> = EventLoop::with_user_event();
 
     let window = winit::window::WindowBuilder::new()
@@ -114,7 +122,7 @@ fn main() -> Result<()> {
     let mut renderer = Renderer::on_window(&window);
 
     let mut size = window.inner_size();
-
+    flame::end("window setup");
     // END OF SETUP
     let mut state = State::new()?;
 
@@ -137,6 +145,9 @@ fn main() -> Result<()> {
         }
         Event::UserEvent(msg) => {
             if msg == Msg::Cmd(Cmd::Quit) {
+                if perf {
+                    flame::dump_html(&mut std::fs::File::create("flame-graph.html").unwrap()).unwrap();
+                }
                 *control_flow = ControlFlow::Exit;
             } else {
                 dirty = update_state(&mut state, msg, msg_sender.clone(), size) || dirty;
@@ -154,6 +165,9 @@ fn main() -> Result<()> {
             let mut render_frame = renderer.start_frame();
             render(&mut render_frame, &state, size);
             render_frame.submit(&size);
+            if single_frame {
+                msg_sender.send_event(Msg::Cmd(Cmd::Quit)).unwrap();
+            }
         }
         Event::WindowEvent {
             event: WindowEvent::ReceivedCharacter(c),

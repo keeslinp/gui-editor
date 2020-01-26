@@ -79,10 +79,12 @@ impl Buffer {
     }
 
     pub fn insert_char(&mut self, c: char, should_step: bool, window_size: PhysicalSize<u32>) {
+        let index = self.cursor.index(&self.rope.slice(..));
+        self.highlighter.mark_dirty(index);
         match c {
             '\t' => {
                 self.rope
-                    .insert(self.cursor.index(&self.rope.slice(..)), "    ");
+                    .insert(index, "    ");
 
                 if should_step {
                     self.cursor.step(Direction::Right, &self.rope.slice(..));
@@ -93,47 +95,45 @@ impl Buffer {
             }
             c => {
                 self.rope
-                    .insert_char(self.cursor.index(&self.rope.slice(..)), c);
+                    .insert_char(index, c);
                 if should_step {
                     self.cursor.step(Direction::Right, &self.rope.slice(..));
                 }
             }
         }
         self.adjust_viewport(window_size);
-        self.highlighter.parse(self.rope.slice(..));
     }
 
     fn adjust_viewport(&mut self, window_size: PhysicalSize<u32>) {
+        let visible_lines = get_visible_lines(window_size);
         if self.cursor.row() < self.offset {
             self.offset = self.cursor.row();
-            self.highlighter.parse(self.rope.slice(..));
         } else {
-            let visible_lines = get_visible_lines(window_size);
             if self.cursor.row() >= visible_lines + self.offset {
                 self.offset = self.cursor.row() - visible_lines + 1;
-                self.highlighter.parse(self.rope.slice(..));
             }
         }
+        let last_char_index = self.rope.line_to_char(self.offset + visible_lines);
+        self.highlighter.parse(self.rope.slice(..last_char_index));
     }
 
     pub fn delete_char(&mut self, direction: DeleteDirection, window_size: PhysicalSize<u32>) {
+        let char_index = self.cursor.index(&self.rope.slice(..));
+        self.highlighter.mark_dirty(char_index);
         match direction {
             DeleteDirection::Before => {
-                let char_index = self.cursor.index(&self.rope.slice(..));
                 if char_index > 0 {
                     self.rope.remove(char_index - 1..char_index);
                     self.cursor.step(Direction::Left, &self.rope.slice(..));
                 }
             }
             DeleteDirection::After => {
-                let char_index = self.cursor.index(&self.rope.slice(..));
                 if char_index < self.rope.len_chars() {
                     self.rope.remove(char_index..=char_index);
                 }
             }
         };
         self.adjust_viewport(window_size);
-        self.highlighter.parse(self.rope.slice(..));
     }
 
     pub fn render(

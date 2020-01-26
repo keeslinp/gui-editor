@@ -1,6 +1,8 @@
 use crate::msg::{Direction, JumpType};
 use ropey::RopeSlice;
 
+use flamer::flame;
+
 #[derive(Debug, PartialEq, Default)]
 pub struct Point {
     pub x: u16,
@@ -11,6 +13,8 @@ impl Point {
     pub fn index(&self, rope: &RopeSlice) -> usize {
         rope.line_to_char(self.y as usize) + self.x as usize
     }
+
+    #[flame("Point")]
     pub fn from_index(index: usize, rope: &RopeSlice) -> Self {
         let y = rope.char_to_line(index) as u16;
         let x = (index - rope.line_to_char(y as usize)) as u16;

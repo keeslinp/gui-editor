@@ -6,6 +6,7 @@ use ropey::RopeSlice;
 use std::collections::HashMap;
 use std::rc::Rc;
 use wgpu_glyph::{Scale, Section};
+use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
 struct Node {
@@ -76,13 +77,14 @@ struct PotentialMatch<'a> {
     m: &'a Match,
 }
 
+use flamer::flame;
+#[flame]
 fn consume_next_match<'a>(
     slice: RopeSlice,
     context: &'a Context,
     char_offset: usize,
     contexts: &'a HashMap<String, Context>,
 ) -> (Option<&'a MatchAction>, Vec<ScopeMatch>) {
-    use std::borrow::Cow;
     if let Some(line_slice) = slice.lines().next() {
         let line: Cow<str> = line_slice.into();
         if line.trim() == "" {
@@ -204,20 +206,22 @@ impl Node {
         }
     }
     fn build(
-        _prev: Option<Rc<Node>>,
+        prev: Option<Rc<Node>>,
         slice: RopeSlice,
         contexts: &HashMap<String, Context>,
         anon_contexts: &[Context],
     ) -> Option<Rc<Node>> {
-        let mut last_node: Option<Rc<Node>> = None;
+        let mut last_node: Option<Rc<Node>> = prev;
         let mut stack = vec![StackValue::Name("main".to_owned())];
-        let mut end_cursor = 0;
+        let mut end_cursor = last_node.as_ref().map(|n| n.char_range.end).unwrap_or(0);
         loop {
+            flame::start("node::loop::iter");
             let current_context = match stack[stack.len() - 1] {
                 StackValue::Name(ref name) => &contexts[name.as_str()],
                 StackValue::Anon(ref index) => &anon_contexts[*index],
             };
             if end_cursor >= slice.len_chars() {
+                flame::end("node::loop::iter");
                 break;
             }
             if stack.len() > 50 {
@@ -240,6 +244,7 @@ impl Node {
                     ));
                 }
             } else {
+                flame::end("node::loop::iter");
                 break;
             }
             match action {
@@ -260,6 +265,7 @@ impl Node {
                 }
                 None => {}
             }
+            flame::end("node::loop::iter");
         }
         last_node
     }
@@ -287,15 +293,30 @@ impl Highlighter {
         })
     }
 
+    pub fn mark_dirty(&mut self, index: usize) {
+        loop {
+            if let Some(node) = self.tail.as_ref() {
+                if node.char_range.end < index {
+                    break;
+                }
+                self.tail = node.prev.clone();
+            } else {
+                break;
+            }
+        }
+    }
+
+    #[flame("highlighter")]
     pub fn parse(&mut self, slice: RopeSlice) {
         self.tail = Node::build(
-            None,
+            self.tail.clone(),
             slice,
             &self.syntax.contexts,
             self.syntax.anon_contexts.as_slice(),
         );
     }
 
+    #[flame("highlighter")]
     pub fn render(
         &self,
         render_frame: &mut RenderFrame,
@@ -321,22 +342,21 @@ impl Highlighter {
                 break; // If we can't see it, stop
             }
             let point = Point::from_index(node.char_range.start, &slice);
-            if let Some(text) = slice.slice(node.char_range.clone()).as_str() {
-                render_frame.queue_text(Section {
-                    text,
-                    screen_position: (
-                        start_x + (point.x as f32 * 15.),
-                        (point.y as f32 * 25.) - y_offset,
-                    ),
-                    color: node
-                        .scope
-                        .as_ref()
-                        .and_then(|scope| color_scheme.get_fg_color_for_scope(scope))
-                        .unwrap_or([1., 1., 1., 1.]),
-                    scale: Scale { x: 30., y: 30. },
-                    ..Section::default()
-                });
-            }
+            let text: Cow<str> = slice.slice(node.char_range.clone()).into();
+            render_frame.queue_text(Section {
+                text: &text,
+                screen_position: (
+                    start_x + (point.x as f32 * 15.),
+                    (point.y as f32 * 25.) - y_offset,
+                ),
+                color: node
+                    .scope
+                    .as_ref()
+                    .and_then(|scope| color_scheme.get_fg_color_for_scope(scope))
+                    .unwrap_or([1., 1., 1., 1.]),
+                scale: Scale { x: 30., y: 30. },
+                ..Section::default()
+            });
             current_node = node.prev.as_ref();
         }
     }
