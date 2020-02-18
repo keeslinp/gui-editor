@@ -199,14 +199,12 @@ impl Node {
 
 pub struct Highlighter {
     tail: Option<Rc<Node>>,
-    syntax: Syntax,
+    syntax: &'static Syntax,
 }
 
-const RUST_SYNTAX: &'static str = include_str!("./Rust.sublime-syntax");
-
 impl Highlighter {
-    pub fn new() -> Result<Self> {
-        let syntax: Syntax = Syntax::new(serde_yaml::from_str(RUST_SYNTAX)?)?;
+    pub fn new(file_extension: &str) -> Result<Self> {
+        let syntax: &'static Syntax = Syntax::new(file_extension)?;
         &syntax.contexts.get("main");
         Ok(Highlighter {
             syntax: syntax,
@@ -226,6 +224,7 @@ impl Highlighter {
             }
         }
     }
+
 
     #[flame("highlighter")]
     pub fn parse(&mut self, slice: RopeSlice) {

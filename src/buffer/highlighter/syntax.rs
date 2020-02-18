@@ -2,6 +2,7 @@ use crate::error::Error;
 use anyhow::Result;
 use fancy_regex::Regex as FRegex;
 use regex::Regex;
+use once_cell::sync::OnceCell;
 
 #[derive(Debug, Clone)]
 pub struct Scope {
@@ -196,6 +197,12 @@ impl Context {
 
 use std::collections::HashMap;
 
+
+
+const RAW_SYNTAXES: &[&'static str] = &[include_str!("./Rust.sublime-syntax"), include_str!("./JavaScript.sublime-syntax")];
+
+static SYNTAXES: OnceCell<Vec<Syntax>> = OnceCell::new();
+
 #[derive(Debug)]
 pub struct Syntax {
     pub contexts: HashMap<String, Context>,
@@ -207,7 +214,7 @@ pub struct Syntax {
 }
 
 impl Syntax {
-    pub fn new(values: serde_yaml::Value) -> Result<Syntax> {
+    fn build(values: serde_yaml::Value) -> Result<Syntax> {
         if values.is_mapping() {
             let name: String = values
                 .get("name")
@@ -269,4 +276,19 @@ impl Syntax {
             Err(Error::BuildingSyntax.anyhow())
         }
     }
+
+    pub fn new(file_extension: &str) -> Result<&'static Syntax> {
+        let syntaxes = SYNTAXES.get_or_init(|| {
+            RAW_SYNTAXES.iter().filter_map(|raw| {
+                Syntax::build(serde_yaml::from_str(raw).ok()?).ok()
+            }).collect()
+        });
+        for syntax in syntaxes.iter() {
+            if syntax.file_extensions.iter().any(|fe| fe == file_extension) {
+                return Ok(syntax);
+            }
+        }
+        Err(Error::UnknownSyntax.anyhow())
+    }
 }
+

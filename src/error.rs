@@ -8,6 +8,8 @@ pub enum Error {
     UnknownCommand(String),
     #[error("Failed to parse syntax")]
     BuildingSyntax,
+    #[error("File Extension not supported")]
+    UnknownSyntax,
     // #[error("Something went wrong highlighting")]
     // Highlighting,
 }

@@ -25,7 +25,7 @@ pub struct Buffer {
     cursor: Cursor,
     offset: usize,
     file: Option<std::path::PathBuf>,
-    highlighter: Highlighter,
+    highlighter: Option<Highlighter>, // The option is temporary
 }
 
 fn log10(num: usize) -> usize {
@@ -48,12 +48,12 @@ impl Buffer {
             cursor: Cursor::new(),
             offset: 0,
             file: None,
-            highlighter: Highlighter::new()?,
+            highlighter: None,
         })
     }
 
     pub fn load_file(file_path: std::path::PathBuf) -> Result<Buffer> {
-        let mut highlighter = Highlighter::new()?;
+        let mut highlighter = Highlighter::new(file_path.extension().and_then(|s| s.to_str()).unwrap_or("rs"))?;
         let rope = Rope::from_reader(std::fs::File::open(file_path.as_path())?)?;
         highlighter.parse(rope.slice(..));
         Ok(Buffer {
@@ -61,7 +61,7 @@ impl Buffer {
             cursor: Cursor::new(),
             offset: 0,
             file: Some(file_path),
-            highlighter,
+            highlighter: Some(highlighter),
         })
     }
 
@@ -79,7 +79,9 @@ impl Buffer {
     }
 
     fn mark_dirty(&mut self) {
-        self.highlighter.mark_dirty(self.rope.line_to_char(std::cmp::max(1, self.cursor.row()) - 1));
+        if let Some(ref mut highlighter) = self.highlighter {
+            highlighter.mark_dirty(self.rope.line_to_char(std::cmp::max(1, self.cursor.row()) - 1));
+        }
     }
 
     pub fn insert_char(&mut self, c: char, should_step: bool, window_size: PhysicalSize<u32>) {
@@ -118,7 +120,9 @@ impl Buffer {
             }
         }
         let last_char_index = self.rope.line_to_char(std::cmp::min(self.offset + visible_lines, self.rope.len_lines()));
-        self.highlighter.parse(self.rope.slice(..last_char_index));
+        if let Some(ref mut highlighter) = self.highlighter {
+            highlighter.parse(self.rope.slice(..last_char_index));
+        }
     }
 
     pub fn delete_char(&mut self, direction: DeleteDirection, window_size: PhysicalSize<u32>) {
@@ -153,14 +157,16 @@ impl Buffer {
 
         let char_offset = self.rope.line_to_char(self.offset);
         let char_end = self.rope.len_chars();
-        self.highlighter.render(
-            render_frame,
-            char_offset..char_end,
-            self.rope.slice(..),
-            30. + line_offset_px,
-            self.offset as f32 * 25. - 10.,
-            color_scheme,
-        );
+        if let Some(ref highlighter) = self.highlighter {
+            highlighter.render(
+                render_frame,
+                char_offset..char_end,
+                self.rope.slice(..),
+                30. + line_offset_px,
+                self.offset as f32 * 25. - 10.,
+                color_scheme,
+            );
+        }
         for visible_line in 0..visible_lines {
             let real_line = self.offset + visible_line;
             let line_in_buffer: bool = real_line < line_len;
