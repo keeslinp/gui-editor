@@ -50,7 +50,7 @@ impl MatchValue {
             MatchActionRaw::Inline(ctx) => {
                 let new_ctx = Context::build(ctx, variables, anon_contexts)?;
                 anon_contexts.push(new_ctx);
-                MatchValue::Inline(anon_contexts.len())
+                MatchValue::Inline(anon_contexts.len() - 1)
             },
             MatchActionRaw::List(values) => MatchValue::List(values.iter().filter_map(|value| MatchValue::build(value, variables, anon_contexts).ok()).collect())
         })
@@ -276,7 +276,7 @@ impl Syntax {
     pub fn new(file_extension: &str) -> Result<&'static Syntax> {
         let syntaxes = SYNTAXES.get_or_init(|| {
             RAW_SYNTAXES.iter().filter_map(|raw| {
-                dbg!(serde_yaml::from_str::<SyntaxRaw>(raw)).ok()?.try_into().ok()
+                serde_yaml::from_str::<SyntaxRaw>(raw).ok()?.try_into().ok()
             }).collect()
         });
         for syntax in syntaxes.iter() {
