@@ -163,7 +163,6 @@ impl Context {
         lazy_static! {
             static ref VAR_RE: Regex = Regex::new(r"\{\{([^\}]*)\}\}").unwrap();
         }
-        dbg!(raw);
         let meta_scope = raw.iter().find_map(|segment| {
             if let ContextSegmentRaw::MetaScope { meta_scope } = segment {
                 Some(meta_scope.clone().into())

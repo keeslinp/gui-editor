@@ -266,7 +266,6 @@ impl Highlighter {
                 flame::end("node::loop::iter");
                 break;
             }
-            dbg!(&current_context);
             if stack.len() > 50 {
                 panic!("Stack is overflowing");
             }
