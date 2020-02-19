@@ -3,6 +3,7 @@ use anyhow::Result;
 use fancy_regex::Regex as FRegex;
 use regex::Regex;
 use once_cell::sync::OnceCell;
+use serde::Deserialize;
 
 #[derive(Debug, Clone)]
 pub struct Scope {
@@ -23,17 +24,37 @@ impl core::ops::Deref for Scope {
 }
 
 #[derive(Debug, Clone)]
-pub enum StackValue {
-    Name(String),
-    Anon(usize),
+pub enum MatchAction {
+    Push(MatchValue),
+    Pop,
+    Set(MatchValue),
+}
+
+impl From<fancy_regex::Error> for Error {
+    fn from(_err: fancy_regex::Error) -> Error {
+        Error::BuildingSyntax
+    }
 }
 
 #[derive(Debug, Clone)]
-pub enum MatchAction {
-    Push(StackValue),
-    PushList(Vec<StackValue>),
-    Pop,
-    Set(StackValue),
+pub enum MatchValue {
+    Name(String),
+    Inline(usize), // Indexes into anon_contexts
+    List(Vec<MatchValue>)
+}
+
+impl MatchValue {
+    fn build(raw: &MatchActionRaw, variables: &HashMap<String, String>, anon_contexts: &mut Vec<Context>) -> Result<MatchValue> {
+        Ok(match raw {
+            MatchActionRaw::Name(name) => MatchValue::Name(name.clone()),
+            MatchActionRaw::Inline(ctx) => {
+                let new_ctx = Context::build(ctx, variables, anon_contexts)?;
+                anon_contexts.push(new_ctx);
+                MatchValue::Inline(anon_contexts.len())
+            },
+            MatchActionRaw::List(values) => MatchValue::List(values.iter().filter_map(|value| MatchValue::build(value, variables, anon_contexts).ok()).collect())
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -44,164 +65,84 @@ pub struct Match {
     pub captures: Option<Vec<Scope>>,
 }
 
-impl From<fancy_regex::Error> for Error {
-    fn from(_err: fancy_regex::Error) -> Error {
-        Error::BuildingSyntax
-    }
-}
-
-use lazy_static::lazy_static;
-
-impl Match {
-    fn new(
-        map: &serde_yaml::Mapping,
-        variables: &HashMap<String, String>,
-        anon_contexts: &mut Vec<Context>,
-    ) -> Result<Match> {
-        lazy_static! {
-            static ref VAR_RE: Regex = Regex::new(r"\{\{([^\}]*)\}\}").unwrap();
-        }
-        let regex: FRegex = map
-            .get(&serde_yaml::Value::String("match".to_string()))
-            .and_then(|v| v.as_str())
-            .map(|s| {
-                let mut stable;
-                let mut temp = s.to_owned();
-                loop {
-                    stable = true;
-                    temp = VAR_RE
-                        .replace_all(temp.as_str(), |captures: &regex::Captures| {
-                            stable = false;
-                            captures
-                                .get(1)
-                                .map(|c| c.as_str())
-                                .and_then(|s| variables.get(s))
-                                .expect("failed to replace variable")
-                        })
-                        .into_owned();
-                    if stable {
-                        break;
-                    }
-                }
-                temp
-            })
-            .ok_or(Error::BuildingSyntax)
-            .and_then(|s| FRegex::new(s.as_ref()).map_err(|e| e.into()))?;
-        let captures: Option<Vec<Scope>> = map
-            .get(&serde_yaml::Value::String("captures".to_string()))
-            .and_then(|v| v.as_mapping())
-            .map(|seq| {
-                seq.iter()
-                    .flat_map(|(_k, v)| v.as_str())
-                    .map(|s| s.to_string().into())
-                    .collect()
-            });
-        let scope: Option<Scope> = map
-            .get(&serde_yaml::Value::String("scope".to_string()))
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string().into());
-        let action: Option<MatchAction> =
-            if let Some(push) = map.get(&serde_yaml::Value::String("push".to_string())) {
-                if let Some(push_str) = push.as_str() {
-                    Some(MatchAction::Push(StackValue::Name(push_str.to_string())))
-                } else if let Some(push_sequence) = push.as_sequence() {
-                    if push_sequence[0].is_mapping() {
-                        let anon = Context::new(push_sequence, variables, anon_contexts)?;
-                        let index = anon_contexts.len();
-                        anon_contexts.push(anon);
-                        Some(MatchAction::Push(StackValue::Anon(index)))
-                    } else {
-                        Some(MatchAction::PushList(
-                            push_sequence
-                                .iter()
-                                .flat_map(|v| v.as_str())
-                                .map(|s| StackValue::Name(s.to_string()))
-                                .collect(),
-                        ))
-                    }
-                } else {
-                    return Err(Error::BuildingSyntax.anyhow());
-                }
-            } else if let Some(_pop) = map.get(&serde_yaml::Value::String("pop".to_string())) {
-                Some(MatchAction::Pop)
-            } else if let Some(set) = map.get(&serde_yaml::Value::String("set".to_string())) {
-                set.as_str()
-                    .map(|s| MatchAction::Set(StackValue::Name(s.to_string())))
-            } else {
-                None
-            };
-        Ok(Match {
-            regex,
-            action,
-            captures,
-            scope,
-        })
-    }
-}
-
 #[derive(Debug)]
 pub enum ContextElement {
     Include(String),
     Match(Match),
 }
 
-impl ContextElement {
-    fn new(
-        map: &serde_yaml::Mapping,
-        variables: &HashMap<String, String>,
-        anon_contexts: &mut Vec<Context>,
-    ) -> Result<ContextElement> {
-        if map.contains_key(&serde_yaml::Value::String("match".to_string())) {
-            Match::new(map, variables, anon_contexts).map(|m| ContextElement::Match(m))
-        } else if let Some(include) = map.get(&serde_yaml::Value::String("include".to_string())) {
-            if let Some(val) = include.as_str() {
-                Ok(ContextElement::Include(val.to_string()))
-            } else {
-                Err(Error::BuildingSyntax.anyhow())
-            }
-        } else {
-            Err(Error::BuildingSyntax.anyhow())
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct Context {
     pub elements: Vec<ContextElement>,
     pub meta_scope: Option<Scope>,
-}
-
-impl Context {
-    fn new(
-        value: &serde_yaml::Sequence,
-        variables: &HashMap<String, String>,
-        anon_contexts: &mut Vec<Context>,
-    ) -> Result<Context> {
-        let elements = value
-            .iter()
-            .flat_map(|v| v.as_mapping())
-            .flat_map(|m| ContextElement::new(m, &variables, anon_contexts))
-            .collect();
-        let meta_scope = value
-            .iter()
-            .flat_map(|v| v.get("meta_scope"))
-            .flat_map(|meta_scope| meta_scope.as_str())
-            .map(|s| s.to_string().into())
-            .next();
-        Ok(Context {
-            elements,
-            meta_scope,
-        })
-    }
+    pub meta_content_scope: Option<Scope>,
+    pub meta_include_prototype: Option<bool>,
+    pub clear_scopes: Option<u8>,
 }
 
 use std::collections::HashMap;
 
 
 
-const RAW_SYNTAXES: &[&'static str] = &[include_str!("./Rust.sublime-syntax"), include_str!("./JavaScript.sublime-syntax")];
+const RAW_SYNTAXES: &[&'static str] = &[
+    include_str!("./Rust.sublime-syntax"),
+    include_str!("./JavaScript.sublime-syntax")
+];
 
 static SYNTAXES: OnceCell<Vec<Syntax>> = OnceCell::new();
+
+#[derive(Deserialize, Debug)]
+#[serde(untagged)]
+enum MatchActionRaw {
+    Name(String),
+    Inline(ContextRaw),
+    List(Vec<MatchActionRaw>),
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(untagged)]
+enum ContextSegmentRaw {
+    Include {
+        include: String,
+    },
+    Match {
+        #[serde(rename = "match")]
+        match_val: String,
+        scope: Option<String>,
+        captures: Option<HashMap<usize, String>>,
+        push: Option<MatchActionRaw>,
+        pop: Option<bool>,
+        set: Option<MatchActionRaw>,
+    },
+    MetaScope {
+        meta_scope: String,
+    },
+    MetaContentScope{
+        meta_content_scope: String,
+    },
+    MetaIncludePrototype {
+        meta_include_prototype: bool,
+    },
+    ClearScopes {
+        clear_scopes: u8,
+    },
+}
+
+// Just for debugging
+#[derive(Deserialize, Debug)]
+struct Empty {
+}
+
+type ContextRaw = Vec<ContextSegmentRaw>;
+
+#[derive(Deserialize, Debug)]
+struct SyntaxRaw {
+    file_extensions: Vec<String>,
+    name: String,
+    variables: HashMap<String, String>,
+    contexts: HashMap<String, ContextRaw>,
+    scope: String,
+}
 
 #[derive(Debug)]
 pub struct Syntax {
@@ -213,74 +154,129 @@ pub struct Syntax {
     pub variables: HashMap<String, String>,
 }
 
-impl Syntax {
-    fn build(values: serde_yaml::Value) -> Result<Syntax> {
-        if values.is_mapping() {
-            let name: String = values
-                .get("name")
-                .and_then(|v| v.as_str())
-                .ok_or(Error::BuildingSyntax)?
-                .to_string();
-            let scope: String = values
-                .get("scope")
-                .and_then(|v| v.as_str())
-                .ok_or(Error::BuildingSyntax)?
-                .to_string();
-            let variables: HashMap<String, String> = values
-                .get("variables")
-                .and_then(|v| v.as_mapping())
-                .ok_or(Error::BuildingSyntax)?
-                .iter()
-                .flat_map(|(k, v)| {
-                    if let (Some(k), Some(v)) = (k.as_str(), v.as_str()) {
-                        Some((k.to_string(), v.to_string()))
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            let mut anon_contexts: Vec<Context> = Vec::new(); // These get populated by the contexts as they are built - Anonymous inline contexts need a place to live
-            let contexts: HashMap<String, Context> = values
-                .get("contexts")
-                .and_then(|v| v.as_mapping())
-                .ok_or(Error::BuildingSyntax)?
-                .iter()
-                .flat_map(|(k, v)| {
-                    if let (Some(k), Some(v)) = (k.as_str(), v.as_sequence()) {
-                        Ok((
-                            k.to_string(),
-                            Context::new(v, &variables, &mut anon_contexts)?,
-                        ))
-                    } else {
-                        Err(Error::BuildingSyntax.anyhow())
-                    }
-                })
-                .collect::<HashMap<String, Context>>();
+use std::convert::{TryFrom, TryInto};
 
-            let file_extensions: Vec<String> = values
-                .get("file_extensions")
-                .and_then(|v| v.as_sequence())
-                .ok_or(Error::BuildingSyntax)?
-                .iter()
-                .flat_map(|extension| extension.as_str().map(|s| s.to_string()))
-                .collect();
-            Ok(Syntax {
-                name,
-                file_extensions,
-                variables,
-                contexts,
-                anon_contexts,
-                scope,
-            })
-        } else {
-            Err(Error::BuildingSyntax.anyhow())
+use lazy_static::lazy_static;
+
+impl Context {
+    fn build(raw: &ContextRaw, variables: &HashMap<String, String>, anon_contexts: &mut Vec<Context>) -> Result<Context> {
+        lazy_static! {
+            static ref VAR_RE: Regex = Regex::new(r"\{\{([^\}]*)\}\}").unwrap();
         }
+        dbg!(raw);
+        let meta_scope = raw.iter().find_map(|segment| {
+            if let ContextSegmentRaw::MetaScope { meta_scope } = segment {
+                Some(meta_scope.clone().into())
+            } else {
+                None
+            }
+        });
+        let clear_scopes = raw.iter().find_map(|segment| {
+            if let ContextSegmentRaw::ClearScopes { clear_scopes } = segment {
+                Some(*clear_scopes)
+            } else {
+                None
+            }
+        });
+        let meta_include_prototype = raw.iter().find_map(|segment| {
+            if let ContextSegmentRaw::MetaIncludePrototype { meta_include_prototype } = segment {
+                Some(*meta_include_prototype)
+            } else {
+                None
+            }
+        });
+        let meta_content_scope = raw.iter().find_map(|segment| {
+            if let ContextSegmentRaw::MetaContentScope { meta_content_scope } = segment {
+                Some(meta_content_scope.clone().into())
+            } else {
+                None
+            }
+        });
+        let elements = raw.iter().filter_map(|segment| match segment {
+            ContextSegmentRaw::Include { include } => Some(ContextElement::Include(include.clone())),
+            ContextSegmentRaw::Match {
+                 push,
+                 pop,
+                 set,
+                 captures,
+                 scope,
+                 match_val,
+            } => Some(ContextElement::Match(Match {
+                action: match (push, pop, set) {
+                    (Some(push), None, None) => Some(MatchAction::Push(MatchValue::build(push, variables, anon_contexts).expect("Building MatchValue from Raw"))),
+                    (None, Some(_), None) => Some(MatchAction::Pop),
+                    (None, None, Some(set)) => Some(MatchAction::Set(MatchValue::build(set, variables, anon_contexts).expect("Building MatchValue from Raw"))),
+                    (None, None, None) => None,
+                    _ => panic!("Only one of push, pop, or set is allowed"),
+                },
+                captures: captures.as_ref().map(|captures| captures.values().map(|scope| scope.clone().into()).collect()),
+                scope: scope.as_ref().map(|s| s.clone().into()),
+                regex: {
+                    let mut stable;
+                    let mut temp = match_val.to_owned();
+                    loop {
+                        stable = true;
+                        temp = VAR_RE
+                            .replace_all(temp.as_str(), |captures: &regex::Captures| {
+                                stable = false;
+                                captures
+                                    .get(1)
+                                    .map(|c| c.as_str())
+                                    .and_then(|s| variables.get(s))
+                                    .expect("failed to replace variable")
+                            })
+                            .into_owned();
+                        if stable {
+                            break;
+                        }
+                    }
+                    if let Ok(regex) = FRegex::new(temp.as_ref()) {
+                        regex
+                    } else {
+                        eprintln!("regex failed");
+                        return None; // There are some weird backref problems I haven't solved
+                    }
+                },
+            })),
+            _ => None,
+        }).collect();
+        Ok(Context {
+            meta_scope,
+            clear_scopes,
+            meta_content_scope,
+            meta_include_prototype,
+            elements,
+        })
     }
+}
 
+impl TryFrom<SyntaxRaw> for Syntax {
+    type Error = anyhow::Error;
+    fn try_from(raw: SyntaxRaw) -> Result<Syntax> {
+        let (contexts, anon_contexts) = {
+            let mut contexts = HashMap::new();
+            let mut anon_contexts = Vec::new();
+            for (name, context_segments) in raw.contexts.iter() {
+                contexts.insert(name.clone(), Context::build(context_segments, &raw.variables, &mut anon_contexts)?);
+            }
+            (contexts, anon_contexts)
+        };
+        Ok(Syntax {
+            variables: raw.variables,
+            name: raw.name,
+            file_extensions: raw.file_extensions,
+            scope: raw.scope,
+            contexts,
+            anon_contexts,
+        })
+    }
+}
+
+impl Syntax {
     pub fn new(file_extension: &str) -> Result<&'static Syntax> {
         let syntaxes = SYNTAXES.get_or_init(|| {
             RAW_SYNTAXES.iter().filter_map(|raw| {
-                Syntax::build(serde_yaml::from_str(raw).ok()?).ok()
+                dbg!(serde_yaml::from_str::<SyntaxRaw>(raw)).ok()?.try_into().ok()
             }).collect()
         });
         for syntax in syntaxes.iter() {

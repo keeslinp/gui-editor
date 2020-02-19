@@ -1,4 +1,4 @@
-use super::syntax::{Context, ContextElement, Match, MatchAction, Scope, StackValue, Syntax};
+use super::syntax::{Context, ContextElement, Match, MatchAction, Scope, Syntax, MatchValue};
 use crate::{color_scheme::ColorScheme, point::Point, render::RenderFrame};
 use anyhow::Result;
 use core::ops::Range;
@@ -25,6 +25,12 @@ struct ScopeMatch {
 struct ContextMatchIter<'a> {
     stack: Vec<&'a [ContextElement]>,
     contexts: &'a HashMap<String, Context>,
+}
+
+#[derive(Debug, Clone)]
+enum StackValue {
+    Name(String),
+    Anon(usize),
 }
 
 impl<'a> ContextMatchIter<'a> {
@@ -202,6 +208,22 @@ pub struct Highlighter {
     syntax: &'static Syntax,
 }
 
+fn add_value_to_stack(stack: &mut Vec<StackValue>, value: &MatchValue) {
+    match value {
+        MatchValue::Name(name) => {
+            stack.push(StackValue::Name(name.clone()));
+        },
+        MatchValue::Inline(index) => {
+            stack.push(StackValue::Anon(*index));
+        },
+        MatchValue::List(values) => {
+            for value in values {
+                add_value_to_stack(stack, value);
+            }
+        }
+    }
+}
+
 impl Highlighter {
     pub fn new(file_extension: &str) -> Result<Self> {
         let syntax: &'static Syntax = Syntax::new(file_extension)?;
@@ -244,6 +266,7 @@ impl Highlighter {
                 flame::end("node::loop::iter");
                 break;
             }
+            dbg!(&current_context);
             if stack.len() > 50 {
                 panic!("Stack is overflowing");
             }
@@ -268,20 +291,20 @@ impl Highlighter {
                 break;
             }
             match action {
-                Some(MatchAction::Push(stack_entry)) => {
-                    stack.push(stack_entry.clone());
+                Some(MatchAction::Push(match_value)) => {
+                    add_value_to_stack(&mut stack, match_value);
                 }
-                Some(MatchAction::PushList(entries)) => {
-                    for entry in entries {
-                        stack.push(entry.clone());
-                    }
-                }
+                // Some(MatchAction::PushList(entries)) => {
+                //     for entry in entries {
+                //         stack.push(entry.clone());
+                //     }
+                // }
                 Some(MatchAction::Pop) => {
                     stack.pop();
                 }
-                Some(MatchAction::Set(stack_entry)) => {
+                Some(MatchAction::Set(match_value)) => {
                     stack.pop();
-                    stack.push(stack_entry.clone());
+                    add_value_to_stack(&mut stack, match_value);
                 }
                 None => {}
             }
