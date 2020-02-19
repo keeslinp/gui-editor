@@ -1154,7 +1154,8 @@ contexts:
       push:
         - meta_include_prototype: false
         - meta_scope: string.quoted.double.raw.rust
-        - match: '"\2'
+        # - match: '"\2'
+        - match: '"' # TODO: Support backref
           scope: punctuation.definition.string.end.rust
           pop: true
 
@@ -1211,7 +1212,8 @@ contexts:
       push:
         - meta_include_prototype: false
         - meta_scope: string.quoted.double.raw.rust
-        - match: '"\2'
+        # - match: '"\2'
+        - match: '"' # TODO: Support backref
           scope: punctuation.definition.string.end.rust
           pop: true
 
@@ -1235,7 +1237,8 @@ contexts:
       push:
         - meta_include_prototype: false
         - meta_scope: string.quoted.double.raw.rust
-        - match: '"\2'
+        #- match: '"\2' Backref is not supported yet
+        - match: '"'
           scope: punctuation.definition.string.end.rust
           pop: true
         - include: format-escapes

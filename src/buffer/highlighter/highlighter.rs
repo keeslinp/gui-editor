@@ -99,7 +99,7 @@ fn consume_next_match<'a>(
                 let total_range = captures
                     .get(0)
                     .map(|c| c.start()..c.end())
-                    .unwrap_or(char_offset..char_offset);
+                    .unwrap_or(0..0);
                 let backup_scope = m.scope.clone().or(context.meta_scope.clone());
                 let mut next_match = Vec::with_capacity(captures.len() + 1);
                 if let Some(ref captured_scopes) = m.captures {
@@ -116,7 +116,7 @@ fn consume_next_match<'a>(
                 // Fill in the gaps
                 let filled_match = if next_match.len() > 0 {
                     let mut buffer = Vec::with_capacity(next_match.len() + 1);
-                    let mut cursor = char_offset; //captures.get(0).map(|c| c.start()).unwrap_or(char_offset);
+                    let mut cursor = char_offset;
                     for group in next_match.into_iter() {
                         if group.char_range.start > cursor {
                             buffer.push(ScopeMatch {
@@ -136,36 +136,37 @@ fn consume_next_match<'a>(
                 } else {
                     unreachable!(); // I hope?
                 };
-                if let Some(PotentialMatch {
-                    ref range,
-                    ..
-                }) = first_match
-                {
-                    if range.start > total_range.start {
-                        first_match = Some(PotentialMatch {
-                            m: &m,
-                            matches: filled_match,
-                            range: total_range,
-                        });
-                    } else if range.start == total_range.start
-                        && range.end < total_range.end
+                if total_range.end > 0 || m.action.is_some() { // We don't really care about a match if it doesn't make a change
+                    if let Some(PotentialMatch {
+                        ref range,
+                        ..
+                    }) = first_match
                     {
+                        if range.start > total_range.start {
+                            first_match = Some(PotentialMatch {
+                                m: &m,
+                                matches: filled_match,
+                                range: total_range,
+                            });
+                        } else if range.start == total_range.start
+                            && range.end < total_range.end
+                        {
+                            first_match = Some(PotentialMatch {
+                                m: &m,
+                                matches: filled_match,
+                                range: total_range,
+                            });
+                        }
+                    } else {
                         first_match = Some(PotentialMatch {
                             m: &m,
                             matches: filled_match,
                             range: total_range,
                         });
                     }
-                } else {
-                    first_match = Some(PotentialMatch {
-                        m: &m,
-                        matches: filled_match,
-                        range: total_range,
-                    });
                 }
             }
         }
-
         // Fill in characters we skipped over with the default scope
         if let Some(PotentialMatch { m, mut matches, .. }) = first_match {
             if matches[0].char_range.start > 0 {
