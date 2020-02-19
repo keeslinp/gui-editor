@@ -293,11 +293,6 @@ impl Highlighter {
                 Some(MatchAction::Push(match_value)) => {
                     add_value_to_stack(&mut stack, match_value);
                 }
-                // Some(MatchAction::PushList(entries)) => {
-                //     for entry in entries {
-                //         stack.push(entry.clone());
-                //     }
-                // }
                 Some(MatchAction::Pop) => {
                     stack.pop();
                 }

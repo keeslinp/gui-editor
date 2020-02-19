@@ -232,7 +232,7 @@ impl Context {
                     if let Ok(regex) = FRegex::new(temp.as_ref()) {
                         regex
                     } else {
-                        eprintln!("regex failed");
+                        eprintln!("regex failed: {:?}", &temp);
                         return None; // There are some weird backref problems I haven't solved
                     }
                 },
