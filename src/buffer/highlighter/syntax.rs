@@ -160,8 +160,9 @@ use lazy_static::lazy_static;
 
 impl Context {
     fn build(raw: &ContextRaw, variables: &HashMap<String, String>, anon_contexts: &mut Vec<Context>) -> Result<Context> {
+        // Could have used r" but it doesn't highlight well
         lazy_static! {
-            static ref VAR_RE: Regex = Regex::new(r"\{\{([^\}]*)\}\}").unwrap();
+            static ref VAR_RE: Regex = Regex::new("\\{\\{([^\\}]*)\\}\\}").unwrap();
         }
         let meta_scope = raw.iter().find_map(|segment| {
             if let ContextSegmentRaw::MetaScope { meta_scope } = segment {
