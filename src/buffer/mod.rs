@@ -3,7 +3,6 @@ use crate::{
     cursor::Cursor,
     error::Error,
     msg::{DeleteDirection, Direction, JumpType},
-    render::RenderFrame,
 };
 
 use anyhow::Result;
@@ -17,8 +16,6 @@ pub type BufferKey = DefaultKey;
 pub mod highlighter;
 
 use highlighter::Highlighter;
-
-use wgpu_glyph::{HorizontalAlign, Layout, Scale, Section};
 
 pub struct Buffer {
     rope: Rope,
@@ -144,53 +141,53 @@ impl Buffer {
         self.adjust_viewport(window_size);
     }
 
-    pub fn render(
-        &self,
-        render_frame: &mut RenderFrame,
-        window_size: PhysicalSize<u32>,
-        color_scheme: &ColorScheme,
-    ) {
-        let visible_lines = get_visible_lines(window_size);
-        let line_len = self.rope.len_lines();
-        let line_offset = log10(line_len);
-        let line_offset_px = line_offset as f32 * 15.;
+    // pub fn render(
+    //     &self,
+    //     render_frame: &mut RenderFrame,
+    //     window_size: PhysicalSize<u32>,
+    //     color_scheme: &ColorScheme,
+    // ) {
+    //     let visible_lines = get_visible_lines(window_size);
+    //     let line_len = self.rope.len_lines();
+    //     let line_offset = log10(line_len);
+    //     let line_offset_px = line_offset as f32 * 15.;
 
-        let char_offset = self.rope.line_to_char(self.offset);
-        let char_end = self.rope.len_chars();
-        if let Some(ref highlighter) = self.highlighter {
-            highlighter.render(
-                render_frame,
-                char_offset..char_end,
-                self.rope.slice(..),
-                30. + line_offset_px,
-                self.offset as f32 * 25. - 10.,
-                color_scheme,
-            );
-        }
-        for visible_line in 0..visible_lines {
-            let real_line = self.offset + visible_line;
-            let line_in_buffer: bool = real_line < line_len;
-            if line_in_buffer {
-                render_frame.queue_text(Section {
-                    text: &format!("{}", real_line + 1),
-                    screen_position: (10. + line_offset_px, 10. + visible_line as f32 * 25.),
-                    color: [0.514, 0.58, 0.588, 1.],
-                    scale: Scale { x: 30., y: 30. },
-                    layout: Layout::default().h_align(HorizontalAlign::Right),
-                    ..Section::default()
-                });
-            } else {
-                render_frame.queue_text(Section {
-                    text: "~",
-                    screen_position: (10., 10. + visible_line as f32 * 25.),
-                    color: [0., 1., 0., 1.],
-                    scale: Scale { x: 30., y: 30. },
-                    ..Section::default()
-                });
-            }
-        }
-        self.cursor.render(render_frame, line_offset, self.offset);
-    }
+    //     let char_offset = self.rope.line_to_char(self.offset);
+    //     let char_end = self.rope.len_chars();
+    //     if let Some(ref highlighter) = self.highlighter {
+    //         highlighter.render(
+    //             render_frame,
+    //             char_offset..char_end,
+    //             self.rope.slice(..),
+    //             30. + line_offset_px,
+    //             self.offset as f32 * 25. - 10.,
+    //             color_scheme,
+    //         );
+    //     }
+    //     for visible_line in 0..visible_lines {
+    //         let real_line = self.offset + visible_line;
+    //         let line_in_buffer: bool = real_line < line_len;
+    //         if line_in_buffer {
+    //             render_frame.queue_text(Section {
+    //                 text: &format!("{}", real_line + 1),
+    //                 screen_position: (10. + line_offset_px, 10. + visible_line as f32 * 25.),
+    //                 color: [0.514, 0.58, 0.588, 1.],
+    //                 scale: Scale { x: 30., y: 30. },
+    //                 layout: Layout::default().h_align(HorizontalAlign::Right),
+    //                 ..Section::default()
+    //             });
+    //         } else {
+    //             render_frame.queue_text(Section {
+    //                 text: "~",
+    //                 screen_position: (10., 10. + visible_line as f32 * 25.),
+    //                 color: [0., 1., 0., 1.],
+    //                 scale: Scale { x: 30., y: 30. },
+    //                 ..Section::default()
+    //             });
+    //         }
+    //     }
+    //     self.cursor.render(render_frame, line_offset, self.offset);
+    // }
 
     pub fn step(&mut self, direction: Direction, window_size: PhysicalSize<u32>) {
         self.cursor.step(direction, &self.rope.slice(..));

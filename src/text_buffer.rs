@@ -1,11 +1,9 @@
 use crate::{
     msg::{Cmd, DeleteDirection, Direction},
-    render::RenderFrame,
 };
 
 use anyhow::Result;
 
-use wgpu_glyph::{Scale, Section};
 use winit::dpi::PhysicalSize;
 
 #[derive(Debug, PartialEq, Clone, Default)]
@@ -59,13 +57,13 @@ impl TextBuffer {
             _ => false,
         })
     }
-    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
-        render_frame.queue_text(Section {
-            text: &format!(":{}", self.buffer.as_str()),
-            screen_position: (10., window_size.height as f32 - 30.),
-            color: [0.514, 0.58, 0.588, 1.],
-            scale: Scale { x: 30., y: 30. },
-            ..Section::default()
-        });
-    }
+    // pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
+    //     render_frame.queue_text(Section {
+    //         text: &format!(":{}", self.buffer.as_str()),
+    //         screen_position: (10., window_size.height as f32 - 30.),
+    //         color: [0.514, 0.58, 0.588, 1.],
+    //         scale: Scale { x: 30., y: 30. },
+    //         ..Section::default()
+    //     });
+    // }
 }

@@ -2,7 +2,6 @@ use crate::{
     buffer::get_visible_lines,
     mode::Mode,
     msg::{Cmd, Direction, Msg},
-    render::RenderFrame,
     text_buffer::TextBuffer,
 };
 
@@ -10,7 +9,6 @@ use anyhow::Result;
 
 use winit::event_loop::EventLoopProxy;
 
-use wgpu_glyph::{Scale, Section};
 
 use fuzzy_matcher::skim::fuzzy_match;
 use walkdir::WalkDir;
@@ -113,23 +111,23 @@ impl SkimBuffer {
         }
         self.selected_option = 0;
     }
-    pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
-        let lines = get_visible_lines(window_size);
-        if let Some(ref files) = self.sorted_files {
-            for (index, entry) in files.iter().take(lines).enumerate() {
-                let y_pos = window_size.height as f32 - (50. + index as f32 * 25.);
-                if self.selected_option == index {
-                    render_frame.queue_quad(0., y_pos, window_size.width as f32, 30.);
-                }
-                render_frame.queue_text(Section {
-                    text: &entry.1,
-                    screen_position: (30., y_pos),
-                    color: [0.514, 0.58, 0.588, 1.],
-                    scale: Scale { x: 30., y: 30. },
-                    ..Section::default()
-                });
-            }
-        }
-        self.buffer.render(render_frame, window_size);
-    }
+    // pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
+    //     let lines = get_visible_lines(window_size);
+    //     if let Some(ref files) = self.sorted_files {
+    //         for (index, entry) in files.iter().take(lines).enumerate() {
+    //             let y_pos = window_size.height as f32 - (50. + index as f32 * 25.);
+    //             if self.selected_option == index {
+    //                 render_frame.queue_quad(0., y_pos, window_size.width as f32, 30.);
+    //             }
+    //             render_frame.queue_text(Section {
+    //                 text: &entry.1,
+    //                 screen_position: (30., y_pos),
+    //                 color: [0.514, 0.58, 0.588, 1.],
+    //                 scale: Scale { x: 30., y: 30. },
+    //                 ..Section::default()
+    //             });
+    //         }
+    //     }
+    //     self.buffer.render(render_frame, window_size);
+    // }
 }

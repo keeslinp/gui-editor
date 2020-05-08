@@ -1,7 +1,6 @@
 use crate::{
     msg::{Direction, JumpType},
     point::Point,
-    render::RenderFrame,
 };
 use ropey::RopeSlice;
 
@@ -37,21 +36,21 @@ impl Cursor {
         }
     }
 
-    pub fn render(
-        &self,
-        render_frame: &mut RenderFrame,
-        horizontal_offset: usize,
-        vertical_offset: usize,
-    ) {
-        render_frame.queue_quad(
-            // horizontal is added because it is to make room for line numbers
-            (f32::from(self.position.x) + horizontal_offset as f32) * 15. + 30.,
-            // vertical is subbed because it adjusts for scrolling
-            (f32::from(self.position.y) - vertical_offset as f32) * 25. + 10.,
-            14.,
-            30.,
-        );
-    }
+    // pub fn render(
+    //     &self,
+    //     render_frame: &mut RenderFrame,
+    //     horizontal_offset: usize,
+    //     vertical_offset: usize,
+    // ) {
+    //     render_frame.queue_quad(
+    //         // horizontal is added because it is to make room for line numbers
+    //         (f32::from(self.position.x) + horizontal_offset as f32) * 15. + 30.,
+    //         // vertical is subbed because it adjusts for scrolling
+    //         (f32::from(self.position.y) - vertical_offset as f32) * 25. + 10.,
+    //         14.,
+    //         30.,
+    //     );
+    // }
 
     pub fn row(&self) -> usize {
         self.position.y as usize
