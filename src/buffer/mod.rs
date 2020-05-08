@@ -149,7 +149,7 @@ impl Buffer {
         let visible_lines = get_visible_lines(ui);
         let line_len = self.rope.len_lines();
         let line_offset = log10(line_len);
-        let line_offset_px = line_offset as f32 * 10.;
+        let line_offset_px = 5. + line_offset as f32 * 10.;
 
         let char_offset = self.rope.line_to_char(self.offset);
         let char_end = self.rope.len_chars();
@@ -166,8 +166,8 @@ impl Buffer {
         ui.group(|| {
             ui.set_cursor_pos([0., 0.]);
             ui.new_line();
-            ui.indent_by(5. + line_offset_px);
-            for line in self.rope.lines().skip(self.offset).take(visible_lines) {
+            ui.indent_by(line_offset_px);
+            for line in self.rope.lines() {
                 use std::borrow::Cow;
                 let text: Cow<str> = line.into();
                 ui.text(text);
@@ -177,17 +177,11 @@ impl Buffer {
             ui.set_cursor_pos([0., 0.]);
             ui.new_line();
             ui.indent_by(5.);
-            for visible_line in 0..visible_lines {
-                let real_line = self.offset + visible_line;
-                let line_in_buffer: bool = real_line < line_len;
-                if line_in_buffer {
-                    ui.text(&format!("{}", real_line + 1));
-                } else {
-                    ui.text("~");
-                };
+            for line in 0..line_len {
+                ui.text(&format!("{}", line + 1));
             }
-        })
-        // self.cursor.render(render_frame, line_offset, self.offset);
+        });
+        self.cursor.render(ui, line_offset_px);
     }
 
     pub fn step(&mut self, direction: Direction) {

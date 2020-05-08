@@ -17,7 +17,6 @@ mod input;
 mod mode;
 mod msg;
 mod point;
-// mod render;
 mod skim_buffer;
 mod state;
 mod text_buffer;
@@ -25,8 +24,6 @@ use imgui::*;
 use imgui_wgpu::Renderer;
 use imgui_winit_support;
 use std::time::Instant;
-
-// use render::{RenderFrame, Renderer};
 
 use anyhow::Result;
 
@@ -115,10 +112,6 @@ fn main() -> Result<()> {
     let event_loop: EventLoop<Msg> = EventLoop::with_user_event();
     let mut hidpi_factor = 1.0;
 
-    // let window = winit::window::WindowBuilder::new()
-    //     .with_title("Editor".to_string())
-    //     .build(&event_loop)
-    //     .unwrap();
     let window = winit::window::Window::new(&event_loop).unwrap();
     window.set_title("Editor");
 
@@ -163,14 +156,6 @@ fn main() -> Result<()> {
 
     let font_size = (13.0 * hidpi_factor) as f32;
     imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
-    // imgui.fonts().add_font(&[FontSource::DefaultFontData {
-    //     config: Some(imgui::FontConfig {
-    //         oversample_h: 1,
-    //         pixel_snap_h: true,
-    //         size_pixels: font_size,
-    //         ..Default::default()
-    //     }),
-    // }]);
 
     imgui.fonts().add_font(&[FontSource::TtfData {
         data: include_bytes!("./render/FiraMono-Regular.ttf"),
@@ -195,7 +180,6 @@ fn main() -> Result<()> {
 
     let mut last_frame = Instant::now();
     let mut last_cursor = None;
-    // let mut renderer = Renderer::on_window(&window);
 
     let mut size = window.inner_size();
     flame::end("window setup");
@@ -277,7 +261,6 @@ fn main() -> Result<()> {
                         .position([0., 0.], Condition::Always)
                         .movable(false)
                         .scroll_bar(false)
-                        .scrollable(false)
                         .collapsible(false)
                         .title_bar(false)
                         .build(&ui, || {

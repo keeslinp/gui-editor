@@ -58,10 +58,9 @@ impl TextBuffer {
         })
     }
     pub fn render(&self, ui: &imgui::Ui) {
-        let [width, height] = ui.window_content_region_max();
+        let [width, height] = ui.window_size();
         let im_string = imgui::ImString::new(format!(":{}", self.buffer.as_str()));
         let [_text_width, text_height] = ui.calc_text_size(&im_string, false, width);
-        ui.set_cursor_pos([10., height - text_height]);
-        ui.text(im_string);
+        ui.get_window_draw_list().add_text([10., height - text_height - 5.], (1., 1., 1.), im_string);
     }
 }
