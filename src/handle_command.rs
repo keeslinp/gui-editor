@@ -11,7 +11,6 @@ pub fn handle_command(
     state: &mut State,
     cmd: Cmd,
     msg_sender: EventLoopProxy<Msg>,
-    window_size: PhysicalSize<u32>,
 ) -> Result<bool> {
     Ok(match (state.mode, cmd) {
         (_, Cmd::SetStatusText(_text)) => {
@@ -55,28 +54,28 @@ pub fn handle_command(
         (_, Cmd::Jump(jump_type)) => {
             flame::start("jump");
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.jump(jump_type, window_size);
+            buffer.jump(jump_type);
             flame::end("jump");
             true
         }
         (_, Cmd::InsertChar(c, should_step)) => {
             flame::start("insert");
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.insert_char(c, should_step, window_size);
+            buffer.insert_char(c, should_step);
             flame::end("insert");
             true
         }
         (_, Cmd::DeleteChar(direction)) => {
             flame::start("delete");
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.delete_char(direction, window_size);
+            buffer.delete_char(direction);
             flame::end("delete");
             true
         }
         (_, Cmd::MoveCursor(direction)) => {
             flame::start("move");
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.step(direction, window_size);
+            buffer.step(direction);
             flame::end("move");
             true
         }

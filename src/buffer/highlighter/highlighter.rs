@@ -306,48 +306,37 @@ impl Highlighter {
         }
     }
 
-    // #[flame("highlighter")]
-    // pub fn render(
-    //     &self,
-    //     render_frame: &mut RenderFrame,
-    //     char_range: Range<usize>,
-    //     slice: RopeSlice,
-    //     start_x: f32,
-    //     y_offset: f32,
-    //     color_scheme: &ColorScheme,
-    // ) {
-    //     let mut current_node = self.tail.as_ref();
-    //     loop {
-    //         if let Some(node) = current_node {
-    //             if node.char_range.start < char_range.end {
-    //                 break;
-    //             }
-    //             current_node = node.prev.as_ref();
-    //         } else {
-    //             break;
-    //         }
-    //     }
-    //     while let Some(node) = current_node {
-    //         if node.char_range.end < char_range.start {
-    //             break; // If we can't see it, stop
-    //         }
-    //         let point = Point::from_index(node.char_range.start, &slice);
-    //         let text: Cow<str> = slice.slice(node.char_range.clone()).into();
-    //         render_frame.queue_text(Section {
-    //             text: &text,
-    //             screen_position: (
-    //                 start_x + (point.x as f32 * 15.),
-    //                 (point.y as f32 * 25.) - y_offset,
-    //             ),
-    //             color: node
-    //                 .scope
-    //                 .as_ref()
-    //                 .and_then(|scope| color_scheme.get_fg_color_for_scope(scope))
-    //                 .unwrap_or([1., 1., 1., 1.]),
-    //             scale: Scale { x: 30., y: 30. },
-    //             ..Section::default()
-    //         });
-    //         current_node = node.prev.as_ref();
-    //     }
-    // }
+    #[flame("highlighter")]
+    pub fn render(
+        &self,
+        ui: &imgui::Ui,
+        char_range: Range<usize>,
+        slice: RopeSlice,
+        start_x: f32,
+        y_offset: f32,
+        color_scheme: &ColorScheme,
+    ) {
+        let mut current_node = self.tail.as_ref();
+        loop {
+            if let Some(node) = current_node {
+                if node.char_range.start < char_range.end {
+                    break;
+                }
+                current_node = node.prev.as_ref();
+            } else {
+                break;
+            }
+        }
+        while let Some(node) = current_node {
+            if node.char_range.end < char_range.start {
+                break; // If we can't see it, stop
+            }
+            let point = Point::from_index(node.char_range.start, &slice);
+            let text: Cow<str> = slice.slice(node.char_range.clone()).into();
+
+            ui.set_cursor_pos([start_x + (point.x as f32 * 5.), (point.y as f32 * 15.) - y_offset]);
+            ui.text(&text);
+            current_node = node.prev.as_ref();
+        }
+    }
 }

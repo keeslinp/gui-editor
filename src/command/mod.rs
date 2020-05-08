@@ -76,7 +76,7 @@ impl CommandBuffer {
             cmd => self.buffer.handle_command(cmd)?,
         })
     }
-    // pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
-    //     self.buffer.render(render_frame, window_size);
-    // }
+    pub fn render(&self, ui: &imgui::Ui) {
+        self.buffer.render(ui);
+    }
 }

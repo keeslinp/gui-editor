@@ -32,7 +32,7 @@ use anyhow::Result;
 
 use state::State;
 
-// use handle_command::handle_command;
+use handle_command::handle_command;
 
 use msg::{Cmd, InputMsg, Msg};
 
@@ -56,48 +56,43 @@ fn update_state(
             true
         }
         Msg::Cmd(cmd_msg) => {
-            true
-            // match handle_command(state, cmd_msg, msg_sender.clone(), window_size) {
-            //     Ok(should_render) => {
-            //         state.status = None;
-            //         should_render
-            //     }
-            //     Err(err) => {
-            //         msg_sender
-            //             .send_event(Msg::Cmd(Cmd::SetStatusText(err.to_string())))
-            //             .expect("setting error");
-            //         true
-            //     }
-            // }
+            match handle_command(state, cmd_msg, msg_sender.clone()) {
+                Ok(should_render) => {
+                    state.status = None;
+                    should_render
+                }
+                Err(err) => {
+                    msg_sender
+                        .send_event(Msg::Cmd(Cmd::SetStatusText(err.to_string())))
+                        .expect("setting error");
+                    true
+                }
+            }
         }
     }
 }
 
-// fn render(render_frame: &mut RenderFrame, state: &State, window_size: PhysicalSize<u32>) {
-//     render_frame.clear();
-//     use mode::Mode::*;
-//     match state.mode {
-//         Normal | Insert | Command | Jump => state.buffers[state.current_buffer].render(
-//             render_frame,
-//             window_size,
-//             &state.color_scheme,
-//         ),
-//         Skim => state.skim_buffer.render(render_frame, window_size),
-//     }
-//     state.mode.render(render_frame, window_size);
-//     if state.mode == mode::Mode::Command {
-//         state.command_buffer.render(render_frame, window_size);
-//     }
-//     if let Some(ref status) = state.status {
-//         render_frame.queue_text(Section {
-//             text: status.as_str(),
-//             screen_position: (10., window_size.height as f32 - 30.),
-//             color: [1., 0., 0., 1.],
-//             scale: Scale { x: 30., y: 30. },
-//             ..Section::default()
-//         });
-//     }
-// }
+fn render(ui: &imgui::Ui, state: &State) {
+    use mode::Mode::*;
+    match state.mode {
+        Normal | Insert | Command | Jump => state.buffers[state.current_buffer].render(
+            ui,
+            &state.color_scheme,
+        ),
+        Skim => state.skim_buffer.render(ui),
+    }
+    state.mode.render(ui);
+    if state.mode == mode::Mode::Command {
+        state.command_buffer.render(ui);
+    }
+    if let Some(ref status) = &state.status {
+        let [width, height] = ui.window_size();
+        let im_string = imgui::ImString::new(status);
+        let [_text_width, text_height] = ui.calc_text_size(&im_string, false, width);
+        ui.set_cursor_pos([0., height - text_height]);
+        ui.text(im_string);
+    }
+}
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "editor", about = "Simple Modal Editor with speed and efficiency as core goals")]
@@ -168,20 +163,20 @@ fn main() -> Result<()> {
 
     let font_size = (13.0 * hidpi_factor) as f32;
     imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
-    imgui.fonts().add_font(&[FontSource::DefaultFontData {
-        config: Some(imgui::FontConfig {
-            oversample_h: 1,
-            pixel_snap_h: true,
-            size_pixels: font_size,
-            ..Default::default()
-        }),
-    }]);
-
-    // imgui.fonts().add_font(&[FontSource::TtfData {
-    //     data: include_bytes!("./render/FiraMono-Regular.ttf"),
-    //     size_pixels: font_size,
-    //     config: None,
+    // imgui.fonts().add_font(&[FontSource::DefaultFontData {
+    //     config: Some(imgui::FontConfig {
+    //         oversample_h: 1,
+    //         pixel_snap_h: true,
+    //         size_pixels: font_size,
+    //         ..Default::default()
+    //     }),
     // }]);
+
+    imgui.fonts().add_font(&[FontSource::TtfData {
+        data: include_bytes!("./render/FiraMono-Regular.ttf"),
+        size_pixels: font_size,
+        config: None,
+    }]);
 
     let clear_color = wgpu::Color {
         r: 0.1,
@@ -219,21 +214,22 @@ fn main() -> Result<()> {
     // TODO (perf): Do some performance improvements on this main loop
     // If there are any serious problems it is better to find out now
     event_loop.run(move |event, _, control_flow| {
+        platform.handle_event(imgui.io_mut(), &window, &event);
         match event {
             Event::MainEventsCleared => {
                 if true || dirty {
                     window.request_redraw();
                 }
             }
-            Event::UserEvent(ref msg) => {
-                // if msg == Msg::Cmd(Cmd::Quit) {
-                //     if perf {
-                //         flame::dump_html(&mut std::fs::File::create("flame-graph.html").unwrap()).unwrap();
-                //     }
-                //     *control_flow = ControlFlow::Exit;
-                // } else {
-                //     dirty = update_state(&mut state, msg, msg_sender.clone(), size) || dirty;
-                // }
+            Event::UserEvent(msg) => {
+                if msg == Msg::Cmd(Cmd::Quit) {
+                    if perf {
+                        flame::dump_html(&mut std::fs::File::create("flame-graph.html").unwrap()).unwrap();
+                    }
+                    *control_flow = ControlFlow::Exit;
+                } else {
+                    dirty = update_state(&mut state, msg, msg_sender.clone(), size) || dirty;
+                }
             }
             Event::WindowEvent {
                 event: WindowEvent::ScaleFactorChanged { scale_factor, .. },
@@ -256,7 +252,6 @@ fn main() -> Result<()> {
                 };
 
                 swap_chain = device.create_swap_chain(&surface, &sc_desc);
-                // renderer.update_size(size);
                 window.request_redraw();
             }
             Event::RedrawEventsCleared { .. } => {
@@ -276,30 +271,18 @@ fn main() -> Result<()> {
                 let ui = imgui.frame();
 
                 {
-                    let window = imgui::Window::new(im_str!("Hello world"));
+                    let window = imgui::Window::new(im_str!("Main"));
                     window
-                        .size([300.0, 100.0], Condition::FirstUseEver)
+                        .size([size.width as f32 / 2., size.height as f32 / 2.], Condition::Always)
+                        .position([0., 0.], Condition::Always)
+                        .movable(false)
+                        .scroll_bar(false)
+                        .scrollable(false)
+                        .collapsible(false)
+                        .title_bar(false)
                         .build(&ui, || {
-                            ui.text(im_str!("Hello world!"));
-                            ui.text(im_str!("This...is...imgui-rs on WGPU!"));
-                            ui.separator();
-                            let mouse_pos = ui.io().mouse_pos;
-                            ui.text(im_str!(
-                                "Mouse Position: ({:.1},{:.1})",
-                                mouse_pos[0],
-                                mouse_pos[1]
-                            ));
+                            render(&ui, &state);
                         });
-
-                    let window = imgui::Window::new(im_str!("Hello too"));
-                    window
-                        .size([400.0, 200.0], Condition::FirstUseEver)
-                        .position([400.0, 200.0], Condition::FirstUseEver)
-                        .build(&ui, || {
-                            ui.text(im_str!("Frametime: {:?}", delta_s));
-                        });
-
-                    ui.show_demo_window(&mut true);
                 }
 
                 let mut encoder: wgpu::CommandEncoder =
@@ -314,9 +297,6 @@ fn main() -> Result<()> {
                     .expect("Rendering failed");
 
                 queue.submit(&[encoder.finish()]);
-                // let mut render_frame = renderer.start_frame();
-                // render(&mut render_frame, &state, size);
-                // render_frame.submit(&size);
                 if single_frame {
                     msg_sender.send_event(Msg::Cmd(Cmd::Quit)).unwrap();
                 }
@@ -342,9 +322,9 @@ fn main() -> Result<()> {
                     },
                 ..
             } => {
-                // msg_sender
-                //     .send_event(Msg::Input(InputMsg::KeyPressed(keycode)))
-                //     .expect("sending key event");
+                msg_sender
+                    .send_event(Msg::Input(InputMsg::KeyPressed(keycode)))
+                    .expect("sending key event");
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
@@ -355,6 +335,5 @@ fn main() -> Result<()> {
             }
             _ => *control_flow = ControlFlow::Wait,
         }
-        platform.handle_event(imgui.io_mut(), &window, &event);
     });
 }

@@ -57,13 +57,11 @@ impl TextBuffer {
             _ => false,
         })
     }
-    // pub fn render(&self, render_frame: &mut RenderFrame, window_size: PhysicalSize<u32>) {
-    //     render_frame.queue_text(Section {
-    //         text: &format!(":{}", self.buffer.as_str()),
-    //         screen_position: (10., window_size.height as f32 - 30.),
-    //         color: [0.514, 0.58, 0.588, 1.],
-    //         scale: Scale { x: 30., y: 30. },
-    //         ..Section::default()
-    //     });
-    // }
+    pub fn render(&self, ui: &imgui::Ui) {
+        let [width, height] = ui.window_content_region_max();
+        let im_string = imgui::ImString::new(format!(":{}", self.buffer.as_str()));
+        let [_text_width, text_height] = ui.calc_text_size(&im_string, false, width);
+        ui.set_cursor_pos([10., height - text_height]);
+        ui.text(im_string);
+    }
 }
