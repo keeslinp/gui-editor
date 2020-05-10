@@ -1,5 +1,5 @@
 use winit::{
-    dpi::{PhysicalSize, LogicalSize},
+    dpi::{PhysicalSize},
     event::{ElementState, Event, KeyboardInput, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopProxy},
 };
@@ -37,7 +37,6 @@ fn update_state(
     state: &mut State,
     msg: Msg,
     msg_sender: EventLoopProxy<Msg>,
-    window_size: PhysicalSize<u32>,
 ) -> bool {
     match msg {
         Msg::Input(input_msg) => {
@@ -201,7 +200,7 @@ fn main() -> Result<()> {
         platform.handle_event(imgui.io_mut(), &window, &event);
         match event {
             Event::MainEventsCleared => {
-                if true || dirty {
+                if dirty {
                     window.request_redraw();
                 }
             }
@@ -212,7 +211,7 @@ fn main() -> Result<()> {
                     }
                     *control_flow = ControlFlow::Exit;
                 } else {
-                    dirty = update_state(&mut state, msg, msg_sender.clone(), size) || dirty;
+                    dirty = update_state(&mut state, msg, msg_sender.clone()) || dirty;
                 }
             }
             Event::WindowEvent {

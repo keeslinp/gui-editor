@@ -104,7 +104,14 @@ impl Buffer {
                 }
             }
         }
+        self.rehighlight();
         // self.adjust_viewport(window_size);
+    }
+
+    fn rehighlight(&mut self) {
+        if let Some(ref mut highlighter) = self.highlighter {
+            highlighter.parse(self.rope.slice(..));
+        }
     }
 
     // fn adjust_viewport(&mut self, height: f32) {
@@ -139,6 +146,7 @@ impl Buffer {
             }
         };
         // self.adjust_viewport(window_size);
+        self.rehighlight();
     }
 
     pub fn render(
@@ -151,26 +159,22 @@ impl Buffer {
         let line_offset = log10(line_len);
         let line_offset_px = 5. + line_offset as f32 * 10.;
 
-        let char_offset = self.rope.line_to_char(self.offset);
-        let char_end = self.rope.len_chars();
-        // if let Some(ref highlighter) = self.highlighter {
-        //     highlighter.render(
-        //         ui,
-        //         char_offset..char_end,
-        //         self.rope.slice(..),
-        //         30. + line_offset_px,
-        //         self.offset as f32 * 25. - 10.,
-        //         color_scheme,
-        //     );
-        // }
         ui.group(|| {
             ui.set_cursor_pos([0., 0.]);
             ui.new_line();
             ui.indent_by(line_offset_px);
-            for line in self.rope.lines() {
-                use std::borrow::Cow;
-                let text: Cow<str> = line.into();
-                ui.text(text);
+            if let Some(ref highlighter) = self.highlighter {
+                highlighter.render(
+                    ui,
+                    self.rope.slice(..),
+                    color_scheme,
+                );
+            } else {
+                for line in self.rope.lines() {
+                    use std::borrow::Cow;
+                    let text: Cow<str> = line.into();
+                    ui.text(text);
+                }
             }
         });
         ui.group(|| {
