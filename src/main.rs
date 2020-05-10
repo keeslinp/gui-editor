@@ -81,8 +81,10 @@ fn render(ui: &imgui::Ui, state: &State, size: &PhysicalSize<u32>) {
         .draw_background(false)
         .build(&ui, || {
             state.mode.render(ui);
-            if state.mode == mode::Mode::Command {
-                state.command_buffer.render(ui);
+            match state.mode {
+                Skim => state.skim_buffer.render_bar(ui),
+                Command => state.command_buffer.render(ui),
+                _ => {}
             }
             if let Some(ref status) = &state.status {
                 ui.set_cursor_pos([10., 0.]);

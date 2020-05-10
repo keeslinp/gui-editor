@@ -115,16 +115,17 @@ impl SkimBuffer {
         if let Some(ref files) = self.sorted_files {
             let [width, height] = ui.window_content_region_max();
             let lines = get_visible_lines(ui);
-            for (index, entry) in files.iter().take(lines).enumerate() {
-                let y_pos = height as f32 - (50. + index as f32 * 25.);
-                // if self.selected_option == index {
-                //     render_frame.queue_quad(0., y_pos, window_size.width as f32, 30.);
-                // }
+            for (index, entry) in files.iter().take(lines).enumerate().rev() {
+                if self.selected_option == index {
+                    let [cx, cy] = ui.cursor_pos();
+                    ui.get_window_draw_list().add_rect([0., cy], [width, cy + 20.], [1., 1., 1., 0.2]).filled(true).build();
+                }
                 let im_string = imgui::ImString::new(&entry.1);
-                ui.set_cursor_pos([30., y_pos]);
                 ui.text(im_string);
             }
         }
+    }
+    pub fn render_bar(&self, ui: &imgui::Ui) {
         self.buffer.render(ui);
     }
 }

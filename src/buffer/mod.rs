@@ -20,7 +20,6 @@ use highlighter::Highlighter;
 pub struct Buffer {
     rope: Rope,
     cursor: Cursor,
-    offset: usize,
     file: Option<std::path::PathBuf>,
     highlighter: Option<Highlighter>, // The option is temporary
 }
@@ -43,7 +42,6 @@ impl Buffer {
         Ok(Buffer {
             rope: Rope::new(),
             cursor: Cursor::new(),
-            offset: 0,
             file: None,
             highlighter: None,
         })
@@ -56,7 +54,6 @@ impl Buffer {
         Ok(Buffer {
             rope,
             cursor: Cursor::new(),
-            offset: 0,
             file: Some(file_path),
             highlighter: Some(highlighter),
         })
