@@ -172,7 +172,7 @@ fn main() -> Result<()> {
     imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
 
     imgui.fonts().add_font(&[FontSource::TtfData {
-        data: include_bytes!("./render/FiraMono-Regular.ttf"),
+        data: include_bytes!("./FiraMono-Regular.ttf"),
         size_pixels: font_size,
         config: None,
     }]);
