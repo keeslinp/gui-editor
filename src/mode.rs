@@ -23,6 +23,7 @@ impl Mode {
         let [width, height] = ui.window_size();
         let im_string = imgui::ImString::new(value);
         let [text_width, text_height] = ui.calc_text_size(&im_string, false, width);
-        ui.get_window_draw_list().add_text([width - text_width - 5., height - text_height - 5.], (1., 1., 1.), im_string);
+        ui.set_cursor_pos([width - text_width - 15., 0.]);
+        ui.text(im_string);
     }
 }

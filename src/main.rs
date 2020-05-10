@@ -68,26 +68,45 @@ fn update_state(
     }
 }
 
-fn render(ui: &imgui::Ui, state: &State) {
+fn render(ui: &imgui::Ui, state: &State, size: &PhysicalSize<u32>) {
     use mode::Mode::*;
-    match state.mode {
-        Normal | Insert | Command | Jump => state.buffers[state.current_buffer].render(
-            ui,
-            &state.color_scheme,
-        ),
-        Skim => state.skim_buffer.render(ui),
-    }
-    state.mode.render(ui);
-    if state.mode == mode::Mode::Command {
-        state.command_buffer.render(ui);
-    }
-    if let Some(ref status) = &state.status {
-        let [width, height] = ui.window_size();
-        let im_string = imgui::ImString::new(status);
-        let [_text_width, text_height] = ui.calc_text_size(&im_string, false, width);
-        ui.set_cursor_pos([0., height - text_height]);
-        ui.text(im_string);
-    }
+    let mut buffer_height = size.height as f32 / 2.;
+    let status_window = imgui::Window::new(im_str!("Status"));
+    status_window
+        .size([size.width as f32 / 2., 20.], Condition::Always)
+        .position([0., size.height as f32 / 2. - 20.], Condition::Always)
+        .movable(false)
+        .scrollable(false)
+        .no_decoration()
+        .draw_background(false)
+        .build(&ui, || {
+            state.mode.render(ui);
+            if state.mode == mode::Mode::Command {
+                state.command_buffer.render(ui);
+            }
+            if let Some(ref status) = &state.status {
+                ui.set_cursor_pos([10., 0.]);
+                let im_string = imgui::ImString::new(status);
+                ui.text(im_string);
+            }
+            buffer_height -= ui.window_size()[1];
+        });
+    let main_window = imgui::Window::new(im_str!("Main"));
+    main_window
+        .size([size.width as f32 / 2., buffer_height], Condition::Always)
+        .position([0., 0.], Condition::Always)
+        .movable(false)
+        .no_decoration()
+        .draw_background(false)
+        .build(&ui, || {
+            match state.mode {
+                Normal | Insert | Command | Jump => state.buffers[state.current_buffer].render(
+                    ui,
+                    &state.color_scheme,
+                ),
+                Skim => state.skim_buffer.render(ui),
+            }
+        });
 }
 
 #[derive(Debug, StructOpt)]
@@ -254,17 +273,7 @@ fn main() -> Result<()> {
                 let ui = imgui.frame();
 
                 {
-                    let window = imgui::Window::new(im_str!("Main"));
-                    window
-                        .size([size.width as f32 / 2., size.height as f32 / 2.], Condition::Always)
-                        .position([0., 0.], Condition::Always)
-                        .movable(false)
-                        .scroll_bar(false)
-                        .collapsible(false)
-                        .title_bar(false)
-                        .build(&ui, || {
-                            render(&ui, &state);
-                        });
+                    render(&ui, &state, &size);
                 }
 
                 let mut encoder: wgpu::CommandEncoder =
