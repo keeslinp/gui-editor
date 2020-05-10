@@ -63,7 +63,7 @@ impl Point {
         match jump_type {
             JumpType::EndOfLine => {
                 let line = rope.line(self.y as usize);
-                self.x = line.len_chars() as u16;
+                self.x = line.len_chars() as u16 - 1;
             }
             JumpType::StartOfLine => {
                 self.x = 0;
