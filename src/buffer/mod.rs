@@ -9,7 +9,7 @@ use anyhow::Result;
 use ropey::Rope;
 use slotmap::DefaultKey;
 
-use winit::dpi::PhysicalSize;
+
 
 pub type BufferKey = DefaultKey;
 
@@ -153,7 +153,7 @@ impl Buffer {
     }
 
     pub fn render(&self, ui: &imgui::Ui, color_scheme: &ColorScheme) {
-        let visible_lines = get_visible_lines(ui);
+        let _visible_lines = get_visible_lines(ui);
         let line_len = self.rope.len_lines();
         let line_offset = log10(line_len);
         let line_offset_px = 5. + line_offset as f32 * 10.;

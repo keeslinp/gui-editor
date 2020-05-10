@@ -11,7 +11,7 @@ use winit::event_loop::EventLoopProxy;
 
 use fuzzy_matcher::skim::fuzzy_match;
 use walkdir::WalkDir;
-use winit::dpi::PhysicalSize;
+
 
 #[derive(Default)]
 pub struct SkimBuffer {

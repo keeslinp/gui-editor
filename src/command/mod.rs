@@ -7,7 +7,7 @@ use crate::{
 
 use anyhow::Result;
 
-use winit::{dpi::PhysicalSize, event_loop::EventLoopProxy};
+use winit::{event_loop::EventLoopProxy};
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct CommandBuffer {

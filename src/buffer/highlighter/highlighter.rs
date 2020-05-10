@@ -1,5 +1,5 @@
 use super::syntax::{Context, ContextElement, Match, MatchAction, MatchValue, Scope, Syntax};
-use crate::{color_scheme::ColorScheme, point::Point};
+use crate::{color_scheme::ColorScheme};
 use anyhow::Result;
 use core::ops::Range;
 use ropey::RopeSlice;
@@ -330,7 +330,7 @@ impl Highlighter {
             current_node = node.prev.as_ref();
         }
         if let Some((index, saved_color)) = anchor {
-            if (index > 0) {
+            if index > 0 {
                 render_commands.push(TextChunk {
                     color: saved_color,
                     text_range: 0..index,

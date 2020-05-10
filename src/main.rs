@@ -254,7 +254,7 @@ fn main() -> Result<()> {
                 window.request_redraw();
             }
             Event::RedrawEventsCleared { .. } => {
-                let delta_s = last_frame.elapsed();
+                let _delta_s = last_frame.elapsed();
                 last_frame = imgui.io_mut().update_delta_time(last_frame);
 
                 let frame = match swap_chain.get_next_texture() {

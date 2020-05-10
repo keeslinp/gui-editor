@@ -2,7 +2,7 @@ use crate::msg::{Cmd, DeleteDirection, Direction};
 
 use anyhow::Result;
 
-use winit::dpi::PhysicalSize;
+
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct TextBuffer {

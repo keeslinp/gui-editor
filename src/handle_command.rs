@@ -5,7 +5,7 @@ use crate::{
     state::State,
 };
 use anyhow::Result;
-use winit::{dpi::PhysicalSize, event_loop::EventLoopProxy};
+use winit::{event_loop::EventLoopProxy};
 
 pub fn handle_command(
     state: &mut State,
