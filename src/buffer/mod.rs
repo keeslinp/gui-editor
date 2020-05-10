@@ -48,7 +48,12 @@ impl Buffer {
     }
 
     pub fn load_file(file_path: std::path::PathBuf) -> Result<Buffer> {
-        let mut highlighter = Highlighter::new(file_path.extension().and_then(|s| s.to_str()).unwrap_or("rs"))?;
+        let mut highlighter = Highlighter::new(
+            file_path
+                .extension()
+                .and_then(|s| s.to_str())
+                .unwrap_or("rs"),
+        )?;
         let rope = Rope::from_reader(std::fs::File::open(file_path.as_path())?)?;
         highlighter.parse(rope.slice(..));
         Ok(Buffer {
@@ -74,7 +79,10 @@ impl Buffer {
 
     fn mark_dirty(&mut self) {
         if let Some(ref mut highlighter) = self.highlighter {
-            highlighter.mark_dirty(self.rope.line_to_char(std::cmp::max(1, self.cursor.row()) - 1));
+            highlighter.mark_dirty(
+                self.rope
+                    .line_to_char(std::cmp::max(1, self.cursor.row()) - 1),
+            );
         }
     }
 
@@ -83,8 +91,7 @@ impl Buffer {
         let index = self.cursor.index(&self.rope.slice(..));
         match c {
             '\t' => {
-                self.rope
-                    .insert(index, "    ");
+                self.rope.insert(index, "    ");
 
                 if should_step {
                     self.cursor.step(Direction::Right, &self.rope.slice(..));
@@ -94,8 +101,7 @@ impl Buffer {
                 }
             }
             c => {
-                self.rope
-                    .insert_char(index, c);
+                self.rope.insert_char(index, c);
                 if should_step {
                     self.cursor.step(Direction::Right, &self.rope.slice(..));
                 }
@@ -146,11 +152,7 @@ impl Buffer {
         self.rehighlight();
     }
 
-    pub fn render(
-        &self,
-        ui: &imgui::Ui,
-        color_scheme: &ColorScheme,
-    ) {
+    pub fn render(&self, ui: &imgui::Ui, color_scheme: &ColorScheme) {
         let visible_lines = get_visible_lines(ui);
         let line_len = self.rope.len_lines();
         let line_offset = log10(line_len);
@@ -161,11 +163,7 @@ impl Buffer {
             ui.new_line();
             ui.indent_by(line_offset_px);
             if let Some(ref highlighter) = self.highlighter {
-                highlighter.render(
-                    ui,
-                    self.rope.slice(..),
-                    color_scheme,
-                );
+                highlighter.render(ui, self.rope.slice(..), color_scheme);
             } else {
                 for line in self.rope.lines() {
                     use std::borrow::Cow;

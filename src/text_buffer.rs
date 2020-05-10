@@ -1,6 +1,4 @@
-use crate::{
-    msg::{Cmd, DeleteDirection, Direction},
-};
+use crate::msg::{Cmd, DeleteDirection, Direction};
 
 use anyhow::Result;
 

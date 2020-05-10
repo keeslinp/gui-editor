@@ -1,11 +1,11 @@
-use super::syntax::{Context, ContextElement, Match, MatchAction, Scope, Syntax, MatchValue};
+use super::syntax::{Context, ContextElement, Match, MatchAction, MatchValue, Scope, Syntax};
 use crate::{color_scheme::ColorScheme, point::Point};
 use anyhow::Result;
 use core::ops::Range;
 use ropey::RopeSlice;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
 struct Node {
@@ -95,10 +95,7 @@ fn consume_next_match<'a>(
         let mut first_match: Option<PotentialMatch> = None;
         for m in ContextMatchIter::new(context, contexts) {
             if let Ok(Some(captures)) = m.regex.captures(&line) {
-                let total_range = captures
-                    .get(0)
-                    .map(|c| c.start()..c.end())
-                    .unwrap_or(0..0);
+                let total_range = captures.get(0).map(|c| c.start()..c.end()).unwrap_or(0..0);
                 let backup_scope = m.scope.clone().or(context.meta_scope.clone());
                 let mut next_match = Vec::with_capacity(captures.len() + 1);
                 if let Some(ref captured_scopes) = m.captures {
@@ -135,21 +132,16 @@ fn consume_next_match<'a>(
                 } else {
                     unreachable!(); // I hope?
                 };
-                if total_range.end > 0 || m.action.is_some() { // We don't really care about a match if it doesn't make a change
-                    if let Some(PotentialMatch {
-                        ref range,
-                        ..
-                    }) = first_match
-                    {
+                if total_range.end > 0 || m.action.is_some() {
+                    // We don't really care about a match if it doesn't make a change
+                    if let Some(PotentialMatch { ref range, .. }) = first_match {
                         if range.start > total_range.start {
                             first_match = Some(PotentialMatch {
                                 m: &m,
                                 matches: filled_match,
                                 range: total_range,
                             });
-                        } else if range.start == total_range.start
-                            && range.end < total_range.end
-                        {
+                        } else if range.start == total_range.start && range.end < total_range.end {
                             first_match = Some(PotentialMatch {
                                 m: &m,
                                 matches: filled_match,
@@ -193,7 +185,11 @@ fn consume_next_match<'a>(
 }
 
 impl Node {
-    fn from_scope_match(scope_match: ScopeMatch, stack: &[StackValue], prev: Option<Rc<Node>>) -> Node {
+    fn from_scope_match(
+        scope_match: ScopeMatch,
+        stack: &[StackValue],
+        prev: Option<Rc<Node>>,
+    ) -> Node {
         Node {
             prev,
             context_stack: stack.to_vec(),
@@ -212,10 +208,10 @@ fn add_value_to_stack(stack: &mut Vec<StackValue>, value: &MatchValue) {
     match value {
         MatchValue::Name(name) => {
             stack.push(StackValue::Name(name.clone()));
-        },
+        }
         MatchValue::Inline(index) => {
             stack.push(StackValue::Anon(*index));
-        },
+        }
         MatchValue::List(values) => {
             for value in values {
                 add_value_to_stack(stack, value);
@@ -247,12 +243,15 @@ impl Highlighter {
         }
     }
 
-
     #[flame("highlighter")]
     pub fn parse(&mut self, slice: RopeSlice) {
         // Only continues from previous tail's end point
         // Need to mark dirty first if there are changes
-        let mut stack = self.tail.as_ref().map(|n| n.context_stack.clone()).unwrap_or_else(|| vec![StackValue::Name("main".to_owned())]);
+        let mut stack = self
+            .tail
+            .as_ref()
+            .map(|n| n.context_stack.clone())
+            .unwrap_or_else(|| vec![StackValue::Name("main".to_owned())]);
         let mut end_cursor = self.tail.as_ref().map(|n| n.char_range.end).unwrap_or(0);
         let contexts = &self.syntax.contexts;
         let anon_contexts = self.syntax.anon_contexts.as_slice();
@@ -281,9 +280,11 @@ impl Highlighter {
                     if scope_match.char_range.end > end_cursor {
                         end_cursor = scope_match.char_range.end
                     }
-                    self.tail = Some(Rc::new(
-                        Node::from_scope_match(scope_match, stack.as_slice(), self.tail.clone()),
-                    ));
+                    self.tail = Some(Rc::new(Node::from_scope_match(
+                        scope_match,
+                        stack.as_slice(),
+                        self.tail.clone(),
+                    )));
                 }
             } else {
                 flame::end("node::loop::iter");
@@ -307,19 +308,17 @@ impl Highlighter {
     }
 
     #[flame("highlighter")]
-    pub fn render(
-        &self,
-        ui: &imgui::Ui,
-        slice: RopeSlice,
-        color_scheme: &ColorScheme,
-    ) {
+    pub fn render(&self, ui: &imgui::Ui, slice: RopeSlice, color_scheme: &ColorScheme) {
         let mut current_node = self.tail.as_ref();
         let line_count = slice.len_lines();
         let mut render_commands = Vec::with_capacity(line_count * 2); //Kinda just a guess to get us started
         let mut anchor: Option<(usize, Option<[f32; 4]>)> = None;
         let len_chars = slice.len_chars();
         while let Some(node) = current_node {
-            let color = node.scope.as_ref().and_then(|val| color_scheme.get_fg_color_for_scope(val));
+            let color = node
+                .scope
+                .as_ref()
+                .and_then(|val| color_scheme.get_fg_color_for_scope(val));
             let (index, saved_color) = anchor.unwrap_or((len_chars, None));
             if color != saved_color {
                 render_commands.push(TextChunk {

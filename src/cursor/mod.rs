@@ -36,17 +36,16 @@ impl Cursor {
         }
     }
 
-    pub fn render(
-        &self,
-        ui: &imgui::Ui,
-        horizontal_offset: f32,
-    ) {
+    pub fn render(&self, ui: &imgui::Ui, horizontal_offset: f32) {
         let line_height = ui.text_line_height_with_spacing();
         let left = ((self.position.x as f32 + 1.2) * 6.5) + horizontal_offset;
         let top = (self.position.y + 1) as f32 * line_height - ui.scroll_y();
         let bottom = top + line_height;
         let right = left + 7.;
-        ui.get_window_draw_list().add_rect([left, top], [right, bottom], [1., 1., 1., 0.2]).filled(true).build();
+        ui.get_window_draw_list()
+            .add_rect([left, top], [right, bottom], [1., 1., 1., 0.2])
+            .filled(true)
+            .build();
         let window_height = ui.window_size()[1];
         if bottom > window_height {
             ui.set_scroll_from_pos_y_with_ratio(bottom + 5., 1.);

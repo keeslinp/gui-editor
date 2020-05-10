@@ -20,9 +20,9 @@ impl Mode {
     }
     pub fn render(self, ui: &imgui::Ui) {
         let value = self.as_str();
-        let [width, height] = ui.window_size();
+        let [width, _height] = ui.window_size();
         let im_string = imgui::ImString::new(value);
-        let [text_width, text_height] = ui.calc_text_size(&im_string, false, width);
+        let [text_width, _text_height] = ui.calc_text_size(&im_string, false, width);
         ui.set_cursor_pos([width - text_width - 15., 0.]);
         ui.text(im_string);
     }

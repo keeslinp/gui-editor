@@ -1,9 +1,9 @@
+use futures::executor::block_on;
 use winit::{
-    dpi::{PhysicalSize},
+    dpi::PhysicalSize,
     event::{ElementState, Event, KeyboardInput, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopProxy},
 };
-use futures::executor::block_on;
 
 use structopt::StructOpt;
 
@@ -33,11 +33,7 @@ use handle_command::handle_command;
 
 use msg::{Cmd, InputMsg, Msg};
 
-fn update_state(
-    state: &mut State,
-    msg: Msg,
-    msg_sender: EventLoopProxy<Msg>,
-) -> bool {
+fn update_state(state: &mut State, msg: Msg, msg_sender: EventLoopProxy<Msg>) -> bool {
     match msg {
         Msg::Input(input_msg) => {
             input::process_input(input_msg, state.mode, |cmd| {
@@ -51,20 +47,18 @@ fn update_state(
             state.status = Some(status);
             true
         }
-        Msg::Cmd(cmd_msg) => {
-            match handle_command(state, cmd_msg, msg_sender.clone()) {
-                Ok(should_render) => {
-                    state.status = None;
-                    should_render
-                }
-                Err(err) => {
-                    msg_sender
-                        .send_event(Msg::Cmd(Cmd::SetStatusText(err.to_string())))
-                        .expect("setting error");
-                    true
-                }
+        Msg::Cmd(cmd_msg) => match handle_command(state, cmd_msg, msg_sender.clone()) {
+            Ok(should_render) => {
+                state.status = None;
+                should_render
             }
-        }
+            Err(err) => {
+                msg_sender
+                    .send_event(Msg::Cmd(Cmd::SetStatusText(err.to_string())))
+                    .expect("setting error");
+                true
+            }
+        },
     }
 }
 
@@ -100,19 +94,19 @@ fn render(ui: &imgui::Ui, state: &State, size: &PhysicalSize<u32>) {
         .movable(false)
         .no_decoration()
         .draw_background(false)
-        .build(&ui, || {
-            match state.mode {
-                Normal | Insert | Command | Jump => state.buffers[state.current_buffer].render(
-                    ui,
-                    &state.color_scheme,
-                ),
-                Skim => state.skim_buffer.render(ui),
+        .build(&ui, || match state.mode {
+            Normal | Insert | Command | Jump => {
+                state.buffers[state.current_buffer].render(ui, &state.color_scheme)
             }
+            Skim => state.skim_buffer.render(ui),
         });
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "editor", about = "Simple Modal Editor with speed and efficiency as core goals")]
+#[structopt(
+    name = "editor",
+    about = "Simple Modal Editor with speed and efficiency as core goals"
+)]
 struct Opt {
     #[structopt(parse(from_os_str))]
     input: Option<std::path::PathBuf>,
@@ -228,7 +222,8 @@ fn main() -> Result<()> {
             Event::UserEvent(msg) => {
                 if msg == Msg::Cmd(Cmd::Quit) {
                     if perf {
-                        flame::dump_html(&mut std::fs::File::create("flame-graph.html").unwrap()).unwrap();
+                        flame::dump_html(&mut std::fs::File::create("flame-graph.html").unwrap())
+                            .unwrap();
                     }
                     *control_flow = ControlFlow::Exit;
                 } else {

@@ -113,12 +113,15 @@ impl SkimBuffer {
     // TODO: render in window overtop
     pub fn render(&self, ui: &imgui::Ui) {
         if let Some(ref files) = self.sorted_files {
-            let [width, height] = ui.window_content_region_max();
+            let [width, _height] = ui.window_content_region_max();
             let lines = get_visible_lines(ui);
             for (index, entry) in files.iter().take(lines).enumerate().rev() {
                 if self.selected_option == index {
-                    let [cx, cy] = ui.cursor_pos();
-                    ui.get_window_draw_list().add_rect([0., cy], [width, cy + 20.], [1., 1., 1., 0.2]).filled(true).build();
+                    let [_cx, cy] = ui.cursor_pos();
+                    ui.get_window_draw_list()
+                        .add_rect([0., cy], [width, cy + 20.], [1., 1., 1., 0.2])
+                        .filled(true)
+                        .build();
                 }
                 let im_string = imgui::ImString::new(&entry.1);
                 ui.text(im_string);
