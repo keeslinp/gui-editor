@@ -3,6 +3,7 @@ use crate::{
     error::Error,
     msg::{DeleteDirection, Direction, JumpType},
 };
+use std::borrow::Cow;
 
 use anyhow::Result;
 use ropey::Rope;
@@ -43,7 +44,12 @@ impl Buffer {
 
     pub fn load_file(file_path: std::path::PathBuf, syntax_set: &SyntaxSet) -> Result<Buffer> {
         let rope = Rope::from_reader(std::fs::File::open(file_path.as_path())?)?;
-        let syntax = file_path.extension().and_then(|os_str| os_str.to_str()).and_then(|ext| syntax_set.find_syntax_by_extension(ext)).cloned();
+        let syntax = match file_path.extension().and_then(|os_str| os_str.to_str()).and_then(|ext| syntax_set.find_syntax_by_extension(ext)) {
+            Some(syntax) => Some(syntax),
+            None => {
+                syntax_set.find_syntax_by_first_line(rope.chunk_at_char(0).0)
+            }
+        }.cloned();
         Ok(Buffer {
             rope,
             cursor: Cursor::new(),
@@ -110,7 +116,6 @@ impl Buffer {
         let line_offset = log10(line_len);
         let line_offset_px = 5. + line_offset as f32 * 10.;
 
-        use std::borrow::Cow;
         ui.group(|| {
             ui.set_cursor_pos([0., 0.]);
             ui.new_line();
@@ -120,6 +125,7 @@ impl Buffer {
                 let mut h = HighlightLines::new(syntax, theme);
                 for line in self.rope.lines() {
                     let text: Cow<str> = line.into();
+                    // TODO: for obvious reasons, don't just parse the whole file each render
                     for (style, val) in h.highlight(&text, &ps) {
                         let syntect::highlighting::Color { r, g, b, a } = style.foreground;
                         ui.text_colored([r as f32 / 255., g as f32 / 255., b as f32 / 255., a as f32 / 255.], val);
