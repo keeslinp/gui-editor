@@ -9,7 +9,6 @@ use ropey::Rope;
 use slotmap::DefaultKey;
 use syntect::{parsing::{SyntaxSet, SyntaxReference}, highlighting::Theme};
 
-
 pub type BufferKey = DefaultKey;
 
 pub struct Buffer {
