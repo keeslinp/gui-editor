@@ -1,10 +1,11 @@
 use crate::{
     buffer::{Buffer, BufferKey},
-    color_scheme::ColorScheme,
     command::CommandBuffer,
     mode::Mode,
     skim_buffer::SkimBuffer,
 };
+
+use syntect::{highlighting::{ThemeSet, Theme}, parsing::SyntaxSet};
 
 use anyhow::Result;
 use slotmap::{SecondaryMap, SlotMap};
@@ -17,7 +18,8 @@ pub struct State {
     pub command_buffer: CommandBuffer,
     pub status: Option<String>,
     pub skim_buffer: SkimBuffer,
-    pub color_scheme: ColorScheme,
+    pub syntax_set: SyntaxSet,
+    pub theme: Theme,
 }
 
 impl State {
@@ -34,7 +36,8 @@ impl State {
             command_buffer: CommandBuffer::default(),
             status: None,
             skim_buffer: SkimBuffer::default(),
-            color_scheme: ColorScheme::build()?,
+            theme: syntect::highlighting::ThemeSet::load_defaults().themes["base16-ocean.dark"].clone(),
+            syntax_set: syntect::parsing::SyntaxSet::load_defaults_newlines(),
         })
     }
 }

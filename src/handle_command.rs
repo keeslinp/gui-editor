@@ -32,7 +32,7 @@ pub fn handle_command(
         }
         (_, Cmd::LoadFile(file)) => {
             flame::start("load_file");
-            let buffer = Buffer::load_file(file)?;
+            let buffer = Buffer::load_file(file, &state.syntax_set)?;
             let new_buffer_key = state.buffer_keys.insert(());
             state.buffers.insert(new_buffer_key, buffer);
             state.current_buffer = new_buffer_key;

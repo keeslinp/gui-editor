@@ -8,7 +8,6 @@ use winit::{
 use structopt::StructOpt;
 
 mod buffer;
-mod color_scheme;
 mod command;
 mod cursor;
 mod error;
@@ -96,7 +95,7 @@ fn render(ui: &imgui::Ui, state: &State, size: &PhysicalSize<u32>) {
         .draw_background(false)
         .build(&ui, || match state.mode {
             Normal | Insert | Command | Jump => {
-                state.buffers[state.current_buffer].render(ui, &state.color_scheme)
+                state.buffers[state.current_buffer].render(ui, &state.theme, &state.syntax_set)
             }
             Skim => state.skim_buffer.render(ui),
         });
