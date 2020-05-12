@@ -63,10 +63,12 @@ impl Point {
         match jump_type {
             JumpType::EndOfLine => {
                 let line = rope.line(self.y as usize);
-                self.x = line.len_chars() as u16 - 1;
+                self.x = line.len_chars() as u16 - if self.y as usize == rope.len_lines() - 1 { 0 } else { 1 };
             }
             JumpType::StartOfLine => {
-                self.x = 0;
+                use std::borrow::Cow;
+                let line: Cow<str> = rope.line(self.y as usize).into();
+                self.x = (line.len() - line.trim_start().len()) as u16;
             }
             JumpType::StartOfFile => {
                 self.y = 0;

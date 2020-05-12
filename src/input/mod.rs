@@ -82,6 +82,10 @@ pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -
             'k' => cmd_sender(Cmd::MoveCursor(Direction::Up)),
             'j' => cmd_sender(Cmd::MoveCursor(Direction::Down)),
             'i' => cmd_sender(Cmd::ChangeMode(Mode::Insert)),
+            'I' => {
+                cmd_sender(Cmd::Jump(JumpType::StartOfLine));
+                cmd_sender(Cmd::ChangeMode(Mode::Insert));
+            },
             ':' => cmd_sender(Cmd::ChangeMode(Mode::Command)),
             'd' => cmd_sender(Cmd::DeleteChar(DeleteDirection::After)),
             'a' => {
@@ -107,6 +111,10 @@ pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -
             }
             'g' => {
                 cmd_sender(Cmd::ChangeMode(Mode::Jump));
+            }
+            '>' => {
+                cmd_sender(Cmd::Jump(JumpType::StartOfLine));
+                cmd_sender(Cmd::InsertChar('\t', true));
             }
             _ => {}
         },
