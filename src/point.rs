@@ -14,6 +14,14 @@ impl Point {
         rope.line_to_char(self.y as usize) + self.x as usize
     }
 
+    pub fn get_char(&self, rope: &RopeSlice) -> char {
+        rope.char(self.index(rope))
+    }
+
+    pub fn is_start(&self) -> bool {
+        self.x == 0 && self.y == 0
+    }
+
     #[flame("Point")]
     pub fn from_index(index: usize, rope: &RopeSlice) -> Self {
         let y = rope.char_to_line(index) as u16;
@@ -77,6 +85,41 @@ impl Point {
             JumpType::EndOfFile => {
                 self.y = rope.len_lines() as u16 - 1;
                 self.x = 0;
+            }
+            JumpType::NextWord => {
+                let mut chars = rope.chars_at(self.index(rope));
+                loop {
+                    if let Some(c) = chars.next() {
+                        self.step(Direction::Right, rope);
+                        if !c.is_alphanumeric() {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                loop {
+                    if let Some(c) = chars.next() {
+                        if c.is_alphanumeric(){
+                            break;
+                        }
+                        self.step(Direction::Right, rope);
+                    } else {
+                        break;
+                    }
+                }
+            }
+            JumpType::PrevWord => {
+                while !self.is_start() && self.get_char(rope).is_alphanumeric() {
+                    self.step(Direction::Left, rope);
+                }
+                while !self.is_start() && !self.get_char(rope).is_alphanumeric() {
+                    self.step(Direction::Left, rope);
+                }
+                while !self.is_start() && self.get_char(rope).is_alphanumeric() {
+                    self.step(Direction::Left, rope);
+                }
+                self.step(Direction::Right, rope);
             }
         }
     }

@@ -29,6 +29,8 @@ pub enum JumpType {
     StartOfLine,
     StartOfFile,
     EndOfFile,
+    NextWord,
+    PrevWord,
 }
 
 #[derive(Debug, PartialEq)]

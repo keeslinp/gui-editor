@@ -61,6 +61,14 @@ fn update_state(state: &mut State, msg: Msg, msg_sender: EventLoopProxy<Msg>) ->
     }
 }
 
+fn style(ctx: &mut imgui::Context) {
+    let mut style = ctx.style_mut();
+    style.item_spacing = [0., 0.];
+    style.item_inner_spacing = [0., 0.];
+    style.columns_min_spacing = 0.;
+    style.use_dark_colors();
+}
+
 fn render(ui: &imgui::Ui, state: &State, size: &PhysicalSize<u32>) {
     use mode::Mode::*;
     let mut buffer_height = size.height as f32 / 2.;
@@ -114,12 +122,20 @@ struct Opt {
 
     #[structopt(long)]
     single_frame: bool,
+
+    #[structopt(long)]
+    poll: bool,
+
+    #[structopt(long)]
+    metrics: bool,
 }
 
 fn main() -> Result<()> {
     let opt = Opt::from_args();
     let perf = opt.perf;
     let single_frame = opt.single_frame;
+    let should_poll = opt.poll;
+    let show_metrics = opt.metrics;
 
     flame::start("window setup");
     let event_loop: EventLoop<Msg> = EventLoop::with_user_event();
@@ -159,6 +175,7 @@ fn main() -> Result<()> {
 
     // Set up dear imgui
     let mut imgui = imgui::Context::create();
+    style(&mut imgui);
     let mut platform = imgui_winit_support::WinitPlatform::init(&mut imgui);
     platform.attach_window(
         imgui.io_mut(),
@@ -270,6 +287,9 @@ fn main() -> Result<()> {
 
                 {
                     render(&ui, &state, &size);
+                    if show_metrics {
+                        ui.show_metrics_window(&mut true);
+                    }
                 }
 
                 let mut encoder: wgpu::CommandEncoder =
@@ -320,7 +340,7 @@ fn main() -> Result<()> {
                 println!("The close button was pressed; stopping");
                 *control_flow = ControlFlow::Exit
             }
-            _ => *control_flow = ControlFlow::Wait,
+            _ => *control_flow = if should_poll { ControlFlow::Poll } else { ControlFlow::Wait },
         }
     });
 }

@@ -36,9 +36,12 @@ impl Cursor {
         }
     }
 
-    pub fn render(&self, ui: &imgui::Ui, horizontal_offset: f32) {
+    pub fn render(&self, ui: &imgui::Ui, horizontal_offset: f32, rope: &RopeSlice) {
         let line_height = ui.text_line_height_with_spacing();
-        let left = ((self.position.x as f32 + 1.2) * 6.5) + horizontal_offset;
+        use std::borrow::Cow;
+        let line_text: Cow<str> = rope.line(self.position.y as usize).into();
+        let im_str = imgui::ImString::new(line_text[0..self.position.x as usize].to_owned());
+        let left = ui.calc_text_size(&im_str, false, 0.)[0] + horizontal_offset + 8.;
         let top = (self.position.y + 1) as f32 * line_height - ui.scroll_y();
         let bottom = top + line_height;
         let right = left + 7.;

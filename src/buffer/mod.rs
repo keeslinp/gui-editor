@@ -147,22 +147,28 @@ impl Buffer {
                 for line in self.rope.lines() {
                     let text: Cow<str> = line.into();
                     // TODO: for obvious reasons, don't just parse the whole file each render
-                    for (style, val) in h.highlight(&text, &ps) {
-                        if ui.is_cursor_rect_visible([10., 10.]) {
-                            let syntect::highlighting::Color { r, g, b, a } = style.foreground;
-                            ui.text_colored(
-                                [
-                                    r as f32 / 255.,
-                                    g as f32 / 255.,
-                                    b as f32 / 255.,
-                                    a as f32 / 255.,
-                                ],
-                                val,
-                            );
-                            ui.same_line_with_spacing(0., 0.);
-                        }
+                    let chunks = h.highlight(&text, &ps);
+                    if ui.is_cursor_rect_visible([10., 10.]) {
+                        ui.group(|| {
+                            for (style, val) in chunks {
+                                let syntect::highlighting::Color { r, g, b, a } = style.foreground;
+                                ui.text_colored(
+                                    [
+                                        r as f32 / 255.,
+                                        g as f32 / 255.,
+                                        b as f32 / 255.,
+                                        a as f32 / 255.,
+                                    ],
+                                    val,
+                                );
+                                ui.same_line(0.);
+                                let [cursor_x, cursor_y] = ui.cursor_pos();
+                                ui.set_cursor_pos([cursor_x - 0.25, cursor_y]); // HACK: I can't figure out how to stop the stupid spacing
+                            }
+                        });
+                    } else {
+                        ui.new_line();
                     }
-                    ui.new_line();
                 }
             } else {
                 for line in self.rope.lines() {
@@ -179,7 +185,7 @@ impl Buffer {
                 ui.text(&format!("{}", line + 1));
             }
         });
-        self.cursor.render(ui, line_offset_px);
+        self.cursor.render(ui, line_offset_px, &self.rope.slice(..));
     }
 
     pub fn step(&mut self, direction: Direction) {
