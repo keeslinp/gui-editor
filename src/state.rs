@@ -5,7 +5,7 @@ use crate::{
     skim_buffer::SkimBuffer,
 };
 
-use syntect::{highlighting::{ThemeSet, Theme}, parsing::SyntaxSet};
+use syntect::{highlighting::{Theme}, parsing::SyntaxSet};
 
 use anyhow::{Result, anyhow};
 use slotmap::{SecondaryMap, SlotMap};
