@@ -92,7 +92,10 @@ pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -
                 cmd_sender(Cmd::Jump(JumpType::EndOfLine));
                 cmd_sender(Cmd::ChangeMode(Mode::Insert));
             }
-            'o' => {
+            'o' | 'O' => {
+                if c == 'O' {
+                    cmd_sender(Cmd::MoveCursor(Direction::Up));
+                }
                 cmd_sender(Cmd::Jump(JumpType::EndOfLine));
                 cmd_sender(Cmd::InsertChar('\n', false));
                 cmd_sender(Cmd::MoveCursor(Direction::Down));
@@ -100,11 +103,6 @@ pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -
                 cmd_sender(Cmd::MoveCursor(Direction::Left));
                 cmd_sender(Cmd::MoveCursor(Direction::Right));
 
-                cmd_sender(Cmd::ChangeMode(Mode::Insert));
-            }
-            'O' => {
-                cmd_sender(Cmd::Jump(JumpType::StartOfLine));
-                cmd_sender(Cmd::InsertChar('\n', false));
                 cmd_sender(Cmd::ChangeMode(Mode::Insert));
             }
             'g' => {

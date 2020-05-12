@@ -90,6 +90,21 @@ impl Buffer {
                     self.cursor.step(Direction::Right, &self.rope.slice(..));
                 }
             }
+            '\n' => {
+                let line: Cow<str> = self.rope.line(self.cursor.row()).into();
+                let space_count = line.len() - line.trim_start().len();
+                self.rope.insert_char(index, '\n');
+                for _ in 0..space_count {
+                    self.rope.insert_char(index + 1, ' ');
+                }
+                if should_step {
+                    let slice = self.rope.slice(..);
+                    self.cursor.step(Direction::Right, &slice);
+                    for _ in 0..space_count {
+                        self.cursor.step(Direction::Right, &slice);
+                    }
+                }
+            }
             c => {
                 self.rope.insert_char(index, c);
                 if should_step {
