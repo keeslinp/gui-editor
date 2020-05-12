@@ -8,7 +8,10 @@ use std::borrow::Cow;
 use anyhow::Result;
 use ropey::Rope;
 use slotmap::DefaultKey;
-use syntect::{parsing::{SyntaxSet, SyntaxReference}, highlighting::Theme};
+use syntect::{
+    highlighting::Theme,
+    parsing::{SyntaxReference, SyntaxSet},
+};
 
 pub type BufferKey = DefaultKey;
 
@@ -44,12 +47,15 @@ impl Buffer {
 
     pub fn load_file(file_path: std::path::PathBuf, syntax_set: &SyntaxSet) -> Result<Buffer> {
         let rope = Rope::from_reader(std::fs::File::open(file_path.as_path())?)?;
-        let syntax = match file_path.extension().and_then(|os_str| os_str.to_str()).and_then(|ext| syntax_set.find_syntax_by_extension(ext)) {
+        let syntax = match file_path
+            .extension()
+            .and_then(|os_str| os_str.to_str())
+            .and_then(|ext| syntax_set.find_syntax_by_extension(ext))
+        {
             Some(syntax) => Some(syntax),
-            None => {
-                syntax_set.find_syntax_by_first_line(rope.chunk_at_char(0).0)
-            }
-        }.cloned();
+            None => syntax_set.find_syntax_by_first_line(rope.chunk_at_char(0).0),
+        }
+        .cloned();
         Ok(Buffer {
             rope,
             cursor: Cursor::new(),
@@ -129,7 +135,15 @@ impl Buffer {
                     for (style, val) in h.highlight(&text, &ps) {
                         if ui.is_cursor_rect_visible([10., 10.]) {
                             let syntect::highlighting::Color { r, g, b, a } = style.foreground;
-                            ui.text_colored([r as f32 / 255., g as f32 / 255., b as f32 / 255., a as f32 / 255.], val);
+                            ui.text_colored(
+                                [
+                                    r as f32 / 255.,
+                                    g as f32 / 255.,
+                                    b as f32 / 255.,
+                                    a as f32 / 255.,
+                                ],
+                                val,
+                            );
                             ui.same_line_with_spacing(0., 0.);
                         }
                     }

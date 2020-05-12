@@ -12,7 +12,6 @@ use winit::event_loop::EventLoopProxy;
 use fuzzy_matcher::skim::fuzzy_match;
 use walkdir::WalkDir;
 
-
 #[derive(Default)]
 pub struct SkimBuffer {
     buffer: TextBuffer,

@@ -5,9 +5,9 @@ use crate::{
     skim_buffer::SkimBuffer,
 };
 
-use syntect::{highlighting::{Theme}, parsing::SyntaxSet};
+use syntect::{highlighting::Theme, parsing::SyntaxSet};
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use slotmap::{SecondaryMap, SlotMap};
 
 pub struct State {
@@ -29,10 +29,13 @@ const SYNTAXES: &[&str] = &[
 ];
 
 fn build_syntax_set() -> Result<SyntaxSet> {
-    use syntect::parsing::{SyntaxSetBuilder, syntax_definition::SyntaxDefinition};
+    use syntect::parsing::{syntax_definition::SyntaxDefinition, SyntaxSetBuilder};
     let mut set = SyntaxSetBuilder::new();
     for syntax in SYNTAXES {
-        set.add(SyntaxDefinition::load_from_str(syntax, true, None).map_err(|_| anyhow!("failed to load syntax"))?);
+        set.add(
+            SyntaxDefinition::load_from_str(syntax, true, None)
+                .map_err(|_| anyhow!("failed to load syntax"))?,
+        );
     }
     Ok(set.build())
 }
@@ -51,7 +54,8 @@ impl State {
             command_buffer: CommandBuffer::default(),
             status: None,
             skim_buffer: SkimBuffer::default(),
-            theme: syntect::highlighting::ThemeSet::load_defaults().themes["base16-ocean.dark"].clone(),
+            theme: syntect::highlighting::ThemeSet::load_defaults().themes["base16-ocean.dark"]
+                .clone(),
             syntax_set: build_syntax_set()?,
         })
     }

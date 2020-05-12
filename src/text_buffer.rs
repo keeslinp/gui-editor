@@ -2,8 +2,6 @@ use crate::msg::{Cmd, DeleteDirection, Direction};
 
 use anyhow::Result;
 
-
-
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct TextBuffer {
     buffer: String,
