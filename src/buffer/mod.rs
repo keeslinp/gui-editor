@@ -121,15 +121,17 @@ impl Buffer {
             ui.new_line();
             ui.indent_by(line_offset_px);
             if let Some(ref syntax) = self.syntax {
-                use syntect::{easy::HighlightLines, util:: LinesWithEndings};
+                use syntect::easy::HighlightLines;
                 let mut h = HighlightLines::new(syntax, theme);
                 for line in self.rope.lines() {
                     let text: Cow<str> = line.into();
                     // TODO: for obvious reasons, don't just parse the whole file each render
                     for (style, val) in h.highlight(&text, &ps) {
-                        let syntect::highlighting::Color { r, g, b, a } = style.foreground;
-                        ui.text_colored([r as f32 / 255., g as f32 / 255., b as f32 / 255., a as f32 / 255.], val);
-                        ui.same_line_with_spacing(0., 0.);
+                        if ui.is_cursor_rect_visible([10., 10.]) {
+                            let syntect::highlighting::Color { r, g, b, a } = style.foreground;
+                            ui.text_colored([r as f32 / 255., g as f32 / 255., b as f32 / 255., a as f32 / 255.], val);
+                            ui.same_line_with_spacing(0., 0.);
+                        }
                     }
                     ui.new_line();
                 }
