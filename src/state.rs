@@ -1,5 +1,5 @@
 use crate::{
-    buffer::{Buffer, BufferKey},
+    buffer::{Buffer, BufferKey, get_visible_lines},
     command::CommandBuffer,
     mode::Mode,
     skim_buffer::SkimBuffer,
@@ -20,6 +20,7 @@ pub struct State {
     pub skim_buffer: SkimBuffer,
     pub syntax_set: SyntaxSet,
     pub theme: Theme,
+    pub line_count: usize,
 }
 
 const SYNTAXES: &[&str] = &[
@@ -57,6 +58,11 @@ impl State {
             theme: syntect::highlighting::ThemeSet::load_defaults().themes["base16-ocean.dark"]
                 .clone(),
             syntax_set: build_syntax_set()?,
+            line_count: 0,
         })
+    }
+
+    pub fn update_from_ui(&mut self, ui: &imgui::Ui) {
+        self.line_count = get_visible_lines(ui);
     }
 }

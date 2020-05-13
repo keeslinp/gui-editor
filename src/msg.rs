@@ -31,6 +31,8 @@ pub enum JumpType {
     EndOfFile,
     NextWord,
     PrevWord,
+    PageForward,
+    PageBackward,
 }
 
 #[derive(Debug, PartialEq)]

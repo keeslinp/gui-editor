@@ -69,7 +69,7 @@ fn style(ctx: &mut imgui::Context) {
     style.use_dark_colors();
 }
 
-fn render(ui: &imgui::Ui, state: &State, size: &PhysicalSize<u32>) {
+fn render(ui: &imgui::Ui, state: &mut State, size: &PhysicalSize<u32>) {
     use mode::Mode::*;
     let mut buffer_height = size.height as f32 / 2.;
     let status_window = imgui::Window::new(im_str!("Status"));
@@ -101,11 +101,14 @@ fn render(ui: &imgui::Ui, state: &State, size: &PhysicalSize<u32>) {
         .movable(false)
         .no_decoration()
         .draw_background(false)
-        .build(&ui, || match state.mode {
-            Normal | Insert | Command | Jump => {
-                state.buffers[state.current_buffer].render(ui, &state.theme, &state.syntax_set)
+        .build(&ui, || {
+            state.update_from_ui(&ui);
+            match state.mode {
+                Normal | Insert | Command | Jump => {
+                    state.buffers[state.current_buffer].render(ui, &state.theme, &state.syntax_set)
+                }
+                Skim => state.skim_buffer.render(ui),
             }
-            Skim => state.skim_buffer.render(ui),
         });
 }
 
@@ -286,7 +289,7 @@ fn main() -> Result<()> {
                 let ui = imgui.frame();
 
                 {
-                    render(&ui, &state, &size);
+                    render(&ui, &mut state, &size);
                     if show_metrics {
                         ui.show_metrics_window(&mut true);
                     }

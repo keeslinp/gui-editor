@@ -54,7 +54,7 @@ pub fn handle_command(
         (_, Cmd::Jump(jump_type)) => {
             flame::start("jump");
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.jump(jump_type);
+            buffer.jump(jump_type, state.line_count);
             flame::end("jump");
             true
         }

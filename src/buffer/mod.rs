@@ -192,13 +192,13 @@ impl Buffer {
         self.cursor.step(direction, &self.rope.slice(..));
     }
 
-    pub fn jump(&mut self, jump_type: JumpType) {
-        self.cursor.jump(jump_type, &self.rope.slice(..));
+    pub fn jump(&mut self, jump_type: JumpType, line_count: usize) {
+        self.cursor.jump(jump_type, &self.rope.slice(..), line_count);
     }
 }
 
 pub fn get_visible_lines(ui: &imgui::Ui) -> usize {
-    let window_height = ui.window_content_region_max()[1];
+    let window_height = ui.window_size()[1];
     let line_height = ui.text_line_height_with_spacing();
     ((window_height) / line_height) as usize - 2
 }

@@ -67,7 +67,7 @@ impl Point {
             }
         }
     }
-    pub fn jump(&mut self, jump_type: JumpType, rope: &RopeSlice) {
+    pub fn jump(&mut self, jump_type: JumpType, rope: &RopeSlice, line_count: usize) {
         match jump_type {
             JumpType::EndOfLine => {
                 let line = rope.line(self.y as usize);
@@ -120,6 +120,16 @@ impl Point {
                     self.step(Direction::Left, rope);
                 }
                 self.step(Direction::Right, rope);
+            }
+            JumpType::PageForward => {
+                for _ in 0..line_count {
+                    self.step(Direction::Down, rope);
+                }
+            }
+            JumpType::PageBackward => {
+                for _ in 0..line_count {
+                    self.step(Direction::Up, rope);
+                }
             }
         }
     }

@@ -61,8 +61,8 @@ impl Cursor {
     pub fn row(&self) -> usize {
         self.position.y as usize
     }
-    pub fn jump(&mut self, jump_type: JumpType, rope: &RopeSlice) {
-        self.position.jump(jump_type, rope);
+    pub fn jump(&mut self, jump_type: JumpType, rope: &RopeSlice, line_count: usize) {
+        self.position.jump(jump_type, rope, line_count);
         self.saved_x = self.position.x;
     }
 }

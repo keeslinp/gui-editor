@@ -77,6 +77,8 @@ pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -
         // Normal
         (Mode::Normal, InputMsg::CharPressed(c)) => match c {
             '\u{10}' => cmd_sender(Cmd::ChangeMode(Mode::Skim)),
+            '\u{6}' => cmd_sender(Cmd::Jump(JumpType::PageForward)),
+            '\u{2}' => cmd_sender(Cmd::Jump(JumpType::PageBackward)),
             'h' => cmd_sender(Cmd::MoveCursor(Direction::Left)),
             'l' => cmd_sender(Cmd::MoveCursor(Direction::Right)),
             'k' => cmd_sender(Cmd::MoveCursor(Direction::Up)),
