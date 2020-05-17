@@ -10,7 +10,7 @@ use anyhow::Result;
 use ropey::Rope;
 use slotmap::DefaultKey;
 
-use syntect::{highlighting::Theme, parsing::SyntaxSet};
+
 
 mod highlighter;
 use highlighter::HighlightContainer;
