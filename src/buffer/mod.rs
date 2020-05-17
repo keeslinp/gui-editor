@@ -2,16 +2,18 @@ use crate::{
     cursor::Cursor,
     error::Error,
     msg::{DeleteDirection, Direction, JumpType},
+    state::Config,
 };
 use std::borrow::Cow;
 
 use anyhow::Result;
 use ropey::Rope;
 use slotmap::DefaultKey;
-use syntect::{
-    highlighting::Theme,
-    parsing::{SyntaxReference, SyntaxSet},
-};
+
+use syntect::{highlighting::Theme, parsing::SyntaxSet};
+
+mod highlighter;
+use highlighter::HighlightContainer;
 
 pub type BufferKey = DefaultKey;
 
@@ -19,7 +21,7 @@ pub struct Buffer {
     rope: Rope,
     cursor: Cursor,
     file: Option<std::path::PathBuf>,
-    syntax: Option<SyntaxReference>,
+    highlighter: Option<HighlightContainer>,
 }
 
 fn log10(num: usize) -> usize {
@@ -41,26 +43,33 @@ impl Buffer {
             rope: Rope::new(),
             cursor: Cursor::new(),
             file: None,
-            syntax: None,
+            highlighter: None,
         })
     }
 
-    pub fn load_file(file_path: std::path::PathBuf, syntax_set: &SyntaxSet) -> Result<Buffer> {
+    pub fn load_file(file_path: std::path::PathBuf, config: &Config) -> Result<Buffer> {
         let rope = Rope::from_reader(std::fs::File::open(file_path.as_path())?)?;
-        let syntax = match file_path
+        let highlighter = match file_path
             .extension()
             .and_then(|os_str| os_str.to_str())
-            .and_then(|ext| syntax_set.find_syntax_by_extension(ext))
+            .and_then(|ext| config.syntax_set.find_syntax_by_extension(ext))
         {
             Some(syntax) => Some(syntax),
-            None => syntax_set.find_syntax_by_first_line(rope.chunk_at_char(0).0),
+            None => config
+                .syntax_set
+                .find_syntax_by_first_line(rope.chunk_at_char(0).0),
         }
-        .cloned();
+        .cloned()
+        .map(|syntax| {
+            let mut val = HighlightContainer::new(syntax);
+            val.highlight(&rope.slice(..), config);
+            val
+        });
         Ok(Buffer {
             rope,
             cursor: Cursor::new(),
             file: Some(file_path),
-            syntax,
+            highlighter,
         })
     }
 
@@ -77,7 +86,7 @@ impl Buffer {
         }
     }
 
-    pub fn insert_char(&mut self, c: char, should_step: bool) {
+    pub fn insert_char(&mut self, config: &Config, c: char, should_step: bool) {
         let index = self.cursor.index(&self.rope.slice(..));
         match c {
             '\t' => {
@@ -112,9 +121,12 @@ impl Buffer {
                 }
             }
         }
+        if let Some(ref mut highlighter) = self.highlighter {
+            highlighter.highlight(&self.rope.slice(..), config);
+        }
     }
 
-    pub fn delete_char(&mut self, direction: DeleteDirection) {
+    pub fn delete_char(&mut self, config: &Config, direction: DeleteDirection) {
         let char_index = self.cursor.index(&self.rope.slice(..));
         match direction {
             DeleteDirection::Before => {
@@ -129,9 +141,12 @@ impl Buffer {
                 }
             }
         };
+        if let Some(ref mut highlighter) = self.highlighter {
+            highlighter.highlight(&self.rope.slice(..), config);
+        }
     }
 
-    pub fn render(&self, ui: &imgui::Ui, theme: &Theme, ps: &SyntaxSet) {
+    pub fn render(&self, ui: &imgui::Ui) {
         let _visible_lines = get_visible_lines(ui);
         let line_len = self.rope.len_lines();
         let line_offset = log10(line_len);
@@ -141,35 +156,8 @@ impl Buffer {
             ui.set_cursor_pos([0., 0.]);
             ui.new_line();
             ui.indent_by(line_offset_px);
-            if let Some(ref syntax) = self.syntax {
-                use syntect::easy::HighlightLines;
-                let mut h = HighlightLines::new(syntax, theme);
-                for line in self.rope.lines() {
-                    let text: Cow<str> = line.into();
-                    // TODO: for obvious reasons, don't just parse the whole file each render
-                    let chunks = h.highlight(&text, &ps);
-                    if ui.is_cursor_rect_visible([10., 10.]) {
-                        ui.group(|| {
-                            for (style, val) in chunks {
-                                let syntect::highlighting::Color { r, g, b, a } = style.foreground;
-                                ui.text_colored(
-                                    [
-                                        r as f32 / 255.,
-                                        g as f32 / 255.,
-                                        b as f32 / 255.,
-                                        a as f32 / 255.,
-                                    ],
-                                    val,
-                                );
-                                ui.same_line(0.);
-                                let [cursor_x, cursor_y] = ui.cursor_pos();
-                                ui.set_cursor_pos([cursor_x - 0.25, cursor_y]); // HACK: I can't figure out how to stop the stupid spacing
-                            }
-                        });
-                    } else {
-                        ui.new_line();
-                    }
-                }
+            if let Some(ref highlighter) = self.highlighter {
+                highlighter.render(&self.rope.slice(..), ui);
             } else {
                 for line in self.rope.lines() {
                     let text: Cow<str> = line.into();
@@ -193,7 +181,8 @@ impl Buffer {
     }
 
     pub fn jump(&mut self, jump_type: JumpType, line_count: usize) {
-        self.cursor.jump(jump_type, &self.rope.slice(..), line_count);
+        self.cursor
+            .jump(jump_type, &self.rope.slice(..), line_count);
     }
 }
 

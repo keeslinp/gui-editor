@@ -32,7 +32,7 @@ pub fn handle_command(
         }
         (_, Cmd::LoadFile(file)) => {
             flame::start("load_file");
-            let buffer = Buffer::load_file(file, &state.syntax_set)?;
+            let buffer = Buffer::load_file(file, &state.config)?;
             let new_buffer_key = state.buffer_keys.insert(());
             state.buffers.insert(new_buffer_key, buffer);
             state.current_buffer = new_buffer_key;
@@ -61,14 +61,14 @@ pub fn handle_command(
         (_, Cmd::InsertChar(c, should_step)) => {
             flame::start("insert");
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.insert_char(c, should_step);
+            buffer.insert_char(&state.config, c, should_step);
             flame::end("insert");
             true
         }
         (_, Cmd::DeleteChar(direction)) => {
             flame::start("delete");
             let buffer = &mut state.buffers[state.current_buffer];
-            buffer.delete_char(direction);
+            buffer.delete_char(&state.config, direction);
             flame::end("delete");
             true
         }

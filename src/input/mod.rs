@@ -87,7 +87,7 @@ pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -
             'I' => {
                 cmd_sender(Cmd::Jump(JumpType::StartOfLine));
                 cmd_sender(Cmd::ChangeMode(Mode::Insert));
-            },
+            }
             ':' => cmd_sender(Cmd::ChangeMode(Mode::Command)),
             'd' => cmd_sender(Cmd::DeleteChar(DeleteDirection::After)),
             'a' => {

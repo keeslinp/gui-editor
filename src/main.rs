@@ -104,9 +104,7 @@ fn render(ui: &imgui::Ui, state: &mut State, size: &PhysicalSize<u32>) {
         .build(&ui, || {
             state.update_from_ui(&ui);
             match state.mode {
-                Normal | Insert | Command | Jump => {
-                    state.buffers[state.current_buffer].render(ui, &state.theme, &state.syntax_set)
-                }
+                Normal | Insert | Command | Jump => state.buffers[state.current_buffer].render(ui),
                 Skim => state.skim_buffer.render(ui),
             }
         });
@@ -343,7 +341,13 @@ fn main() -> Result<()> {
                 println!("The close button was pressed; stopping");
                 *control_flow = ControlFlow::Exit
             }
-            _ => *control_flow = if should_poll { ControlFlow::Poll } else { ControlFlow::Wait },
+            _ => {
+                *control_flow = if should_poll {
+                    ControlFlow::Poll
+                } else {
+                    ControlFlow::Wait
+                }
+            }
         }
     });
 }

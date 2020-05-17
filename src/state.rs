@@ -1,5 +1,5 @@
 use crate::{
-    buffer::{Buffer, BufferKey, get_visible_lines},
+    buffer::{get_visible_lines, Buffer, BufferKey},
     command::CommandBuffer,
     mode::Mode,
     skim_buffer::SkimBuffer,
@@ -10,6 +10,12 @@ use syntect::{highlighting::Theme, parsing::SyntaxSet};
 use anyhow::{anyhow, Result};
 use slotmap::{SecondaryMap, SlotMap};
 
+/// Passed around configurations to make things easier
+pub struct Config {
+    pub theme: Theme,
+    pub syntax_set: SyntaxSet,
+}
+
 pub struct State {
     pub buffer_keys: SlotMap<BufferKey, ()>,
     pub buffers: SecondaryMap<BufferKey, Buffer>,
@@ -18,8 +24,7 @@ pub struct State {
     pub command_buffer: CommandBuffer,
     pub status: Option<String>,
     pub skim_buffer: SkimBuffer,
-    pub syntax_set: SyntaxSet,
-    pub theme: Theme,
+    pub config: Config,
     pub line_count: usize,
 }
 
@@ -55,9 +60,11 @@ impl State {
             command_buffer: CommandBuffer::default(),
             status: None,
             skim_buffer: SkimBuffer::default(),
-            theme: syntect::highlighting::ThemeSet::load_defaults().themes["base16-ocean.dark"]
-                .clone(),
-            syntax_set: build_syntax_set()?,
+            config: Config {
+                theme: syntect::highlighting::ThemeSet::load_defaults().themes["base16-ocean.dark"]
+                    .clone(),
+                syntax_set: build_syntax_set()?,
+            },
             line_count: 0,
         })
     }
