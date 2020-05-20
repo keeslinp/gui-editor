@@ -30,6 +30,7 @@ pub enum JumpType {
     StartOfFile,
     EndOfFile,
     NextWord,
+    EndOfWord,
     PrevWord,
     PageForward,
     PageBackward,

@@ -95,6 +95,7 @@ pub fn process_input(input_msg: InputMsg, mode: Mode, cmd_sender: impl Fn(Cmd) -
                 cmd_sender(Cmd::ChangeMode(Mode::Insert));
             }
             'w' => cmd_sender(Cmd::Jump(JumpType::NextWord)),
+            'e' => cmd_sender(Cmd::Jump(JumpType::EndOfWord)),
             'b' => cmd_sender(Cmd::Jump(JumpType::PrevWord)),
             'A' => {
                 cmd_sender(Cmd::Jump(JumpType::EndOfLine));

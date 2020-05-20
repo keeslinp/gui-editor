@@ -1,5 +1,5 @@
 use crate::msg::{Direction, JumpType};
-use ropey::RopeSlice;
+use ropey::{RopeSlice, iter::Chars};
 
 use flamer::flame;
 
@@ -7,6 +7,25 @@ use flamer::flame;
 pub struct Point {
     pub x: u16,
     pub y: u16,
+}
+
+struct RevChars<'a> {
+    chars: Chars<'a>,
+}
+
+impl<'a> Iterator for RevChars<'a> {
+    type Item = char;
+    fn next(&mut self) -> Option<char> {
+        self.chars.prev()
+    }
+}
+
+impl<'a> From<Chars<'a>> for RevChars<'a> {
+    fn from(chars: Chars<'a>) -> RevChars<'a> {
+        RevChars {
+            chars
+        }
+    }
 }
 
 impl Point {
@@ -67,6 +86,18 @@ impl Point {
             }
         }
     }
+
+    fn search<T: Iterator<Item = char>>(&mut self, t: T, rope: &RopeSlice, direction: Direction, while_fn: fn(&char) -> bool) {
+        t.take_while(while_fn).for_each(|_| self.step(direction, rope));
+    }
+    fn step_while(&mut self, rope: &RopeSlice, direction: Direction, while_fn: fn(&char) -> bool) {
+        let iter = rope.chars_at(self.index(rope));
+        match direction {
+            Direction::Right => self.search(iter, rope, direction, while_fn),
+            Direction::Left => self.search(RevChars::from(iter), rope, direction, while_fn),
+            Direction::Up | Direction::Down => unimplemented!(),
+        }
+    }
     pub fn jump(&mut self, jump_type: JumpType, rope: &RopeSlice, line_count: usize) {
         match jump_type {
             JumpType::EndOfLine => {
@@ -92,39 +123,23 @@ impl Point {
                 self.x = 0;
             }
             JumpType::NextWord => {
-                let mut chars = rope.chars_at(self.index(rope));
-                loop {
-                    if let Some(c) = chars.next() {
-                        self.step(Direction::Right, rope);
-                        if !c.is_alphanumeric() {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
+                self.step_while(rope, Direction::Right, |c| c.is_alphanumeric());
+                self.step_while(rope, Direction::Right, |c| !c.is_alphanumeric());
+            }
+            JumpType::EndOfWord => {
+                if rope.char(self.index(rope)).is_alphanumeric() && !rope.char(self.index(rope) + 1).is_alphanumeric() { // TODO: Handle edges of buffer
+                    self.step(Direction::Right, rope);
                 }
-                loop {
-                    if let Some(c) = chars.next() {
-                        if c.is_alphanumeric() {
-                            break;
-                        }
-                        self.step(Direction::Right, rope);
-                    } else {
-                        break;
-                    }
-                }
+                self.step_while(rope, Direction::Right, |c| !c.is_alphanumeric());
+                self.step_while(rope, Direction::Right, |c| c.is_alphanumeric());
+                self.step(Direction::Left, rope);
             }
             JumpType::PrevWord => {
-                while !self.is_start() && self.get_char(rope).is_alphanumeric() {
+                if rope.char(self.index(rope)).is_alphanumeric() && !rope.char(self.index(rope) - 1).is_alphanumeric() { // TODO: Handle edges of buffer
                     self.step(Direction::Left, rope);
+                    self.step_while(rope, Direction::Left, |c| !c.is_alphanumeric())
                 }
-                while !self.is_start() && !self.get_char(rope).is_alphanumeric() {
-                    self.step(Direction::Left, rope);
-                }
-                while !self.is_start() && self.get_char(rope).is_alphanumeric() {
-                    self.step(Direction::Left, rope);
-                }
-                self.step(Direction::Right, rope);
+                self.step_while(rope, Direction::Left, |c| c.is_alphanumeric())
             }
             JumpType::PageForward => {
                 for _ in 0..line_count {
