@@ -145,11 +145,13 @@ impl Point {
                 for _ in 0..line_count {
                     self.step(Direction::Down, rope);
                 }
+                self.prevent_runoff(rope);
             }
             JumpType::PageBackward => {
                 for _ in 0..line_count {
                     self.step(Direction::Up, rope);
                 }
+                self.prevent_runoff(rope);
             }
         }
     }
